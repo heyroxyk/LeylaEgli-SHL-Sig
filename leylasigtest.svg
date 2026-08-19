@@ -1,112 +1,151 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="500" height="200" viewBox="0 0 500 200" role="img" aria-label="Player signature card">
-
-<!--
-  ZONE MAP (matches the <map> coords in the forum snippet)
-    A   0,0   150,170   jersey block   -> player page
-    B   150,0 360,170   stat bars      -> stats page
-    C   360,0 500,170   team block     -> team thread
-    D   0,170 500,200   footer strip   -> update thread
-  Change colors in the two :root blocks below. Nothing else needs editing.
--->
-
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="200" viewBox="0 0 500 200" role="img" aria-label="Leyla Egli, number 76, Right Defense, Detroit Falcons">
 <style>
-  :root {
-    --bg:      #12161c;
-    --panel:   #1a2029;
-    --rule:    #2b3442;
-    --ink:     #e8edf4;
-    --muted:   #7c869a;
-    --accent:  #d7263d;
-    --accent2: #f0a202;
+  :root{
+    --bg:#12161c; --panel:#161c24; --rail:#0b0e13; --rule:#28313e; --grid:#222b37;
+    --ink:#eef2f7; --muted:#78849a; --accent:#d02128; --accent2:#e8eaee;
   }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg:      #f2f4f7;
-      --panel:   #e4e8ee;
-      --rule:    #c3cbd6;
-      --ink:     #10141a;
-      --muted:   #5c6675;
-      --accent:  #b01028;
-      --accent2: #c47c00;
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#eef1f5; --panel:#e3e7ee; --rail:#d4dae3; --rule:#bcc6d3; --grid:#cbd3dd;
+      --ink:#0f141b; --muted:#5b6675; --accent:#b0161d; --accent2:#2a3240;
     }
   }
-  .bg     { fill: var(--bg); }
-  .panel  { fill: var(--panel); }
-  .rule   { stroke: var(--rule); stroke-width: 1; }
-  .num    { fill: var(--ink); font: 700 76px/1 "Arial Narrow", "Haettenschweiler", Impact, sans-serif; letter-spacing: -2px; }
-  .name   { fill: var(--ink); font: 700 17px/1 "Arial Narrow", Impact, sans-serif; letter-spacing: 1.5px; }
-  .pos    { fill: var(--accent2); font: 700 11px/1 Verdana, sans-serif; letter-spacing: 2px; }
-  .label  { fill: var(--muted); font: 700 9px/1 Verdana, sans-serif; letter-spacing: 1.5px; }
-  .val    { fill: var(--ink); font: 700 13px/1 Verdana, sans-serif; }
-  .foot   { fill: var(--muted); font: 400 10px/1 Verdana, sans-serif; letter-spacing: 1px; }
-  .track  { fill: var(--rule); }
-  .fill   { fill: var(--accent); }
+  .bg{fill:var(--bg)} .panel{fill:var(--panel)} .rail{fill:var(--rail)}
+  .num{fill:var(--ink); font:700 78px/1 "Arial Narrow","Haettenschweiler",Impact,sans-serif; letter-spacing:-3px}
+  .nm{fill:var(--ink); font:700 17px/1 "Arial Narrow",Impact,sans-serif; letter-spacing:2.5px}
+  .pos{fill:var(--accent); font:700 10px/1 Verdana,sans-serif; letter-spacing:3px}
+  .meta{fill:var(--muted); font:400 8px/1 Verdana,sans-serif; letter-spacing:1.2px}
+  .team{fill:var(--muted); font:700 9px/1 Verdana,sans-serif; letter-spacing:2px}
+  .ax{fill:var(--muted); font:700 6.5px/1 Verdana,sans-serif; letter-spacing:1.2px}
+  .lbl{fill:var(--muted); font:700 8px/1 Verdana,sans-serif; letter-spacing:1.6px}
+  .val{fill:var(--ink); font:700 14px/1 Verdana,sans-serif}
+
+  /* TPE bar: total earned fills first, applied share follows */
+  .tpeTotal{ animation: fillTotal 1.1s cubic-bezier(.2,.8,.2,1) .45s both; }
+  .tpe{ animation: fillApplied 1.1s cubic-bezier(.2,.8,.2,1) .7s both; }
+  @keyframes fillTotal{ from{width:0} to{width:54px} }
+  @keyframes fillApplied{ from{width:0} to{width:28px} }
+
+  /* radar draws outward from centre */
+  .shape{ transform-origin:255px 80px; animation: bloom 1.1s cubic-bezier(.2,.8,.2,1) .35s both; }
+  @keyframes bloom{ from{transform:scale(0); opacity:0} to{transform:scale(1); opacity:1} }
+
+  /* five cards share one rail, staggered by negative delay */
+  .card{ opacity:0; animation: cycle 17.5s ease-in-out infinite; }
+  .c2{animation-delay:-14s} .c3{animation-delay:-10.5s}
+  .c4{animation-delay:-7s}  .c5{animation-delay:-3.5s}
+  @keyframes cycle{
+    0%  {opacity:0; transform:translateY(6px)}
+    3%  {opacity:1; transform:translateY(0)}
+    17% {opacity:1; transform:translateY(0)}
+    20% {opacity:0; transform:translateY(-6px)}
+    100%{opacity:0; transform:translateY(-6px)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .card{animation:none; opacity:0} .c1{opacity:1}
+    .shape{animation:none; transform:none; opacity:1}
+    .tpe{animation:none; width:28px}
+    .tpeTotal{animation:none; width:54px}
+  }
 </style>
 
 <rect class="bg" x="0" y="0" width="500" height="200"/>
+<rect class="panel" x="0" y="0" width="500" height="160"/>
 
-<!-- ZONE A: jersey block -->
-<rect class="panel" x="0" y="0" width="150" height="170"/>
-<text class="num" x="14" y="86">88</text>
-<text class="name" x="14" y="112">PLAYER NAME</text>
-<text class="pos" x="14" y="132">LW</text>
-<rect class="fill" x="14" y="142" width="0" height="3">
-  <animate attributeName="width" from="0" to="60" dur="0.7s" begin="0.2s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-</rect>
+<!-- identity -->
+<text class="num"  x="20" y="84">76</text>
 
-<!-- ZONE B: stat bars. Each bar draws in on load. -->
-<g transform="translate(166,26)">
-  <g>
-    <text class="label" x="0" y="0">GOALS</text>
-    <text class="val" x="150" y="1" text-anchor="end">21</text>
-    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
-    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
-      <animate attributeName="width" from="0" to="74" dur="0.9s" begin="0.3s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-    </rect>
+<!-- TPE bar: light fill = total earned (819), solid fill = applied (425), scale 0-2000 -->
+<text class="ax" x="21"  y="92">PROGRESS TO 2000 TPE</text>
+<text class="ax" x="152" y="92" text-anchor="end">819</text>
+<rect fill="var(--grid)" x="21" y="96" width="131" height="5" rx="2.5"/>
+<rect class="tpeTotal" fill="var(--accent)" fill-opacity="0.4" x="21" y="96" width="54" height="5" rx="2.5"/>
+<rect class="tpe" fill="var(--accent)" x="21" y="96" width="28" height="5" rx="2.5"/>
+<line stroke="var(--bg)" stroke-width="1" x1="53.8" y1="96" x2="53.8" y2="101"/>
+<line stroke="var(--bg)" stroke-width="1" x1="86.5" y1="96" x2="86.5" y2="101"/>
+<line stroke="var(--bg)" stroke-width="1" x1="119.3" y1="96" x2="119.3" y2="101"/>
+<text class="ax" x="21" y="110" fill-opacity="0.75">425 APPLIED</text>
+
+<text class="nm"   x="20" y="122">LEYLA EGLI</text>
+<text class="pos"  x="21" y="136">RIGHT DEFENSE</text>
+<text class="meta" x="21" y="150">ZUG, SWITZERLAND  ·  6'1"  ·  178</text>
+
+<!-- attribute radar. Axes are grouped averages, scaled 0-20. -->
+<g>
+  <polygon fill="none" stroke="var(--grid)" stroke-width="1" points="255,28 300,54 300,106 255,132 210,106 210,54"/>
+  <polygon fill="none" stroke="var(--grid)" stroke-width="1" points="255,54 277.5,67 277.5,93 255,106 232.5,93 232.5,67"/>
+  <line stroke="var(--grid)" x1="255" y1="80" x2="255" y2="28"/>
+  <line stroke="var(--grid)" x1="255" y1="80" x2="300" y2="54"/>
+  <line stroke="var(--grid)" x1="255" y1="80" x2="300" y2="106"/>
+  <line stroke="var(--grid)" x1="255" y1="80" x2="255" y2="132"/>
+  <line stroke="var(--grid)" x1="255" y1="80" x2="210" y2="106"/>
+  <line stroke="var(--grid)" x1="255" y1="80" x2="210" y2="54"/>
+
+  <g class="shape">
+    <polygon points="255,41 286.5,61.8 286.5,98.2 255,102.1 226.9,96.3 221.2,60.5"
+             fill="var(--accent)" fill-opacity="0.22"
+             stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="255"   cy="41"   r="2" fill="var(--accent)"/>
+    <circle cx="286.5" cy="61.8" r="2" fill="var(--accent)"/>
+    <circle cx="286.5" cy="98.2" r="2" fill="var(--accent)"/>
+    <circle cx="255"   cy="102.1" r="2" fill="var(--accent)"/>
+    <circle cx="226.9" cy="96.3" r="2" fill="var(--accent)"/>
+    <circle cx="221.2" cy="60.5" r="2" fill="var(--accent)"/>
   </g>
-  <g transform="translate(0,34)">
-    <text class="label" x="0" y="0">ASSISTS</text>
-    <text class="val" x="150" y="1" text-anchor="end">22</text>
-    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
-    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
-      <animate attributeName="width" from="0" to="78" dur="0.9s" begin="0.42s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-    </rect>
-  </g>
-  <g transform="translate(0,68)">
-    <text class="label" x="0" y="0">POINTS</text>
-    <text class="val" x="150" y="1" text-anchor="end">43</text>
-    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
-    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
-      <animate attributeName="width" from="0" to="152" dur="0.9s" begin="0.54s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-    </rect>
-  </g>
-  <g transform="translate(0,102)">
-    <text class="label" x="0" y="0">SHOOTING</text>
-    <text class="val" x="150" y="1" text-anchor="end">16.7%</text>
-    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
-    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
-      <animate attributeName="width" from="0" to="60" dur="0.9s" begin="0.66s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-    </rect>
-  </g>
+
+  <text class="ax" x="255" y="21"  text-anchor="middle">SKATING</text>
+  <text class="ax" x="306" y="52"  >SENSE</text>
+  <text class="ax" x="306" y="110" >PUCK</text>
+  <text class="ax" x="255" y="143" text-anchor="middle">PHYSICAL</text>
+  <text class="ax" x="204" y="110" text-anchor="end">STICK</text>
+  <text class="ax" x="204" y="52"  text-anchor="end">MENTAL</text>
 </g>
 
-<line class="rule" x1="358" y1="14" x2="358" y2="156"/>
-
-<!-- ZONE C: team block. Drop a base64 crest here later. -->
-<g transform="translate(430,74)">
-  <circle r="30" fill="none" stroke="var(--rule)" stroke-width="1"/>
-  <circle r="30" fill="none" stroke="var(--accent)" stroke-width="2"
-          stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90)">
-    <animate attributeName="stroke-dashoffset" from="188.5" to="0" dur="1.2s" begin="0.5s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+<!-- team well: the Falcons mark drops in here -->
+<g transform="translate(422,74)">
+  <circle r="40" fill="none" stroke="var(--rule)" stroke-width="1"/>
+  <circle r="40" fill="none" stroke="var(--accent)" stroke-width="2.5"
+          stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90)">
+    <animate attributeName="stroke-dashoffset" from="251.3" to="0" dur="1.4s" begin="0.3s"
+             fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
   </circle>
-  <text class="pos" text-anchor="middle" y="4">TEAM</text>
+  <text class="team" text-anchor="middle" y="-3">DETROIT</text>
+  <text class="team" text-anchor="middle" y="11">FALCONS</text>
+  <text class="ax"   text-anchor="middle" y="26">SMJHL</text>
 </g>
 
-<!-- ZONE D: footer strip with a slow ambient sweep -->
-<rect class="panel" x="0" y="170" width="500" height="30"/>
-<text class="foot" x="14" y="189">S88  ·  43 P  ·  26 PIM  ·  126 S  ·  UPDATE THREAD</text>
-<rect x="-120" y="170" width="120" height="30" fill="var(--accent2)" opacity="0.07">
-  <animate attributeName="x" from="-120" to="500" dur="5s" begin="1.5s" repeatCount="indefinite"/>
-</rect>
+<!-- ticker rail -->
+<rect class="rail" x="0" y="160" width="500" height="40"/>
+<rect fill="var(--accent)" x="0" y="160" width="500" height="2"/>
 
+<g class="card c1">
+  <text class="lbl" x="20"  y="177">TOTAL TPE</text><text class="val" x="20"  y="192">819</text>
+  <text class="lbl" x="140" y="177">BANKED</text><text class="val" x="140" y="192">394</text>
+  <text class="lbl" x="260" y="177">DRAFT</text><text class="val" x="260" y="192">S87</text>
+  <text class="lbl" x="380" y="177">SHOOTS</text><text class="val" x="380" y="192">RIGHT</text>
+</g>
+<g class="card c2">
+  <text class="lbl" x="20"  y="177">ACCELERATION</text><text class="val" x="20"  y="192">15</text>
+  <text class="lbl" x="140" y="177">AGILITY</text><text class="val" x="140" y="192">15</text>
+  <text class="lbl" x="260" y="177">SPEED</text><text class="val" x="260" y="192">15</text>
+  <text class="lbl" x="380" y="177">STAMINA</text><text class="val" x="380" y="192">15</text>
+</g>
+<g class="card c3">
+  <text class="lbl" x="20"  y="177">POSITIONING</text><text class="val" x="20"  y="192">14</text>
+  <text class="lbl" x="140" y="177">STICKCHECK</text><text class="val" x="140" y="192">14</text>
+  <text class="lbl" x="260" y="177">DEF READ</text><text class="val" x="260" y="192">14</text>
+  <text class="lbl" x="380" y="177">OFF READ</text><text class="val" x="380" y="192">14</text>
+</g>
+<g class="card c4">
+  <text class="lbl" x="20"  y="177">PASSING</text><text class="val" x="20"  y="192">14</text>
+  <text class="lbl" x="140" y="177">PUCKHANDLING</text><text class="val" x="140" y="192">14</text>
+  <text class="lbl" x="260" y="177">SHOT ACCURACY</text><text class="val" x="260" y="192">13</text>
+  <text class="lbl" x="380" y="177">GETTING OPEN</text><text class="val" x="380" y="192">12</text>
+</g>
+<g class="card c5">
+  <text class="lbl" x="20"  y="177">DETERMINATION</text><text class="val" x="20"  y="192">15</text>
+  <text class="lbl" x="140" y="177">LEADERSHIP</text><text class="val" x="140" y="192">15</text>
+  <text class="lbl" x="260" y="177">TEMPERAMENT</text><text class="val" x="260" y="192">15</text>
+  <text class="lbl" x="380" y="177">PROFESSIONALISM</text><text class="val" x="380" y="192">15</text>
+</g>
 </svg>
