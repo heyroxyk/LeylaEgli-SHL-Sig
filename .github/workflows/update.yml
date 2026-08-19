@@ -1,0 +1,65 @@
+name: Update signature
+
+# GitHub disables scheduled workflows after 60 days with no repo activity. If the
+# signature goes stale, check the Actions tab for a "workflow disabled" notice and
+# re-enable it there; a manual run below also counts as activity.
+on:
+  schedule:
+    - cron: "17 9 * * *"  # 09:17 UTC daily, off the hour to dodge the queue crush
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A manual run and the nightly one must never race to push the same file.
+concurrency:
+  group: update-signature
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # fetch.py writes data.json only after every field validates, so a bad
+      # API response fails here and leaves the committed signature untouched.
+      - name: Fetch current figures
+        run: python fetch.py
+
+      - name: Check whether anything moved
+        id: diff
+        run: |
+          if git diff --quiet -- data.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No change since the last run. Leaving the signature alone."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --unified=0 -- data.json
+          fi
+
+      # build.py validates the rendered markup and refuses to write on any
+      # failure, so leyla.svg is either correct or untouched from the last run.
+      - name: Rebuild the signature
+        if: steps.diff.outputs.changed == 'true'
+        run: python build.py
+
+      # After the build, so the committed-output test compares like with like.
+      - name: Run the test suite
+        if: steps.diff.outputs.changed == 'true'
+        run: python -m unittest test_build -v
+
+      - name: Commit
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          total=$(python -c "import json; print(json.load(open('data.json'))['player']['totalTPE'])")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json leyla.svg
+          git commit -m "chore: refresh signature (${total} TPE)"
+          git push
