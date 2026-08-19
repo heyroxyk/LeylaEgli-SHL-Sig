@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="200" viewBox="0 0 500 200" role="img" aria-label="Player signature card">
+
+<!--
+  ZONE MAP (matches the <map> coords in the forum snippet)
+    A   0,0   150,170   jersey block   -> player page
+    B   150,0 360,170   stat bars      -> stats page
+    C   360,0 500,170   team block     -> team thread
+    D   0,170 500,200   footer strip   -> update thread
+  Change colors in the two :root blocks below. Nothing else needs editing.
+-->
+
+<style>
+  :root {
+    --bg:      #12161c;
+    --panel:   #1a2029;
+    --rule:    #2b3442;
+    --ink:     #e8edf4;
+    --muted:   #7c869a;
+    --accent:  #d7263d;
+    --accent2: #f0a202;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:      #f2f4f7;
+      --panel:   #e4e8ee;
+      --rule:    #c3cbd6;
+      --ink:     #10141a;
+      --muted:   #5c6675;
+      --accent:  #b01028;
+      --accent2: #c47c00;
+    }
+  }
+  .bg     { fill: var(--bg); }
+  .panel  { fill: var(--panel); }
+  .rule   { stroke: var(--rule); stroke-width: 1; }
+  .num    { fill: var(--ink); font: 700 76px/1 "Arial Narrow", "Haettenschweiler", Impact, sans-serif; letter-spacing: -2px; }
+  .name   { fill: var(--ink); font: 700 17px/1 "Arial Narrow", Impact, sans-serif; letter-spacing: 1.5px; }
+  .pos    { fill: var(--accent2); font: 700 11px/1 Verdana, sans-serif; letter-spacing: 2px; }
+  .label  { fill: var(--muted); font: 700 9px/1 Verdana, sans-serif; letter-spacing: 1.5px; }
+  .val    { fill: var(--ink); font: 700 13px/1 Verdana, sans-serif; }
+  .foot   { fill: var(--muted); font: 400 10px/1 Verdana, sans-serif; letter-spacing: 1px; }
+  .track  { fill: var(--rule); }
+  .fill   { fill: var(--accent); }
+</style>
+
+<rect class="bg" x="0" y="0" width="500" height="200"/>
+
+<!-- ZONE A: jersey block -->
+<rect class="panel" x="0" y="0" width="150" height="170"/>
+<text class="num" x="14" y="86">88</text>
+<text class="name" x="14" y="112">PLAYER NAME</text>
+<text class="pos" x="14" y="132">LW</text>
+<rect class="fill" x="14" y="142" width="0" height="3">
+  <animate attributeName="width" from="0" to="60" dur="0.7s" begin="0.2s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+</rect>
+
+<!-- ZONE B: stat bars. Each bar draws in on load. -->
+<g transform="translate(166,26)">
+  <g>
+    <text class="label" x="0" y="0">GOALS</text>
+    <text class="val" x="150" y="1" text-anchor="end">21</text>
+    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
+    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
+      <animate attributeName="width" from="0" to="74" dur="0.9s" begin="0.3s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+    </rect>
+  </g>
+  <g transform="translate(0,34)">
+    <text class="label" x="0" y="0">ASSISTS</text>
+    <text class="val" x="150" y="1" text-anchor="end">22</text>
+    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
+    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
+      <animate attributeName="width" from="0" to="78" dur="0.9s" begin="0.42s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+    </rect>
+  </g>
+  <g transform="translate(0,68)">
+    <text class="label" x="0" y="0">POINTS</text>
+    <text class="val" x="150" y="1" text-anchor="end">43</text>
+    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
+    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
+      <animate attributeName="width" from="0" to="152" dur="0.9s" begin="0.54s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+    </rect>
+  </g>
+  <g transform="translate(0,102)">
+    <text class="label" x="0" y="0">SHOOTING</text>
+    <text class="val" x="150" y="1" text-anchor="end">16.7%</text>
+    <rect class="track" x="0" y="8" width="178" height="4" rx="2"/>
+    <rect class="fill" x="0" y="8" width="0" height="4" rx="2">
+      <animate attributeName="width" from="0" to="60" dur="0.9s" begin="0.66s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+    </rect>
+  </g>
+</g>
+
+<line class="rule" x1="358" y1="14" x2="358" y2="156"/>
+
+<!-- ZONE C: team block. Drop a base64 crest here later. -->
+<g transform="translate(430,74)">
+  <circle r="30" fill="none" stroke="var(--rule)" stroke-width="1"/>
+  <circle r="30" fill="none" stroke="var(--accent)" stroke-width="2"
+          stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90)">
+    <animate attributeName="stroke-dashoffset" from="188.5" to="0" dur="1.2s" begin="0.5s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
+  </circle>
+  <text class="pos" text-anchor="middle" y="4">TEAM</text>
+</g>
+
+<!-- ZONE D: footer strip with a slow ambient sweep -->
+<rect class="panel" x="0" y="170" width="500" height="30"/>
+<text class="foot" x="14" y="189">S88  ·  43 P  ·  26 PIM  ·  126 S  ·  UPDATE THREAD</text>
+<rect x="-120" y="170" width="120" height="30" fill="var(--accent2)" opacity="0.07">
+  <animate attributeName="x" from="-120" to="500" dur="5s" begin="1.5s" repeatCount="indefinite"/>
+</rect>
+
+</svg>
