@@ -57,10 +57,11 @@
 <rect class="panel" x="0" y="0" width="620" height="158"/>
 
 <!-- COLUMN 1: identity -->
-<text class="num"  x="24" y="88">76</text>
-<text class="nm"   x="26" y="116">LEYLA EGLI</text>
-<text class="pos"  x="27" y="131">RIGHT DEFENSE</text>
-<text class="meta" x="27" y="145">ZUG, SWITZERLAND  ·  6'1"  ·  178 LBS  ·  SHOOTS RIGHT</text>
+<text class="num"  x="24" y="82">76</text>
+<text class="nm"   x="26" y="111">LEYLA EGLI</text>
+<text class="pos"  x="27" y="125">RIGHT DEFENSE</text>
+<text class="meta" x="27" y="139">ZUG, SWITZERLAND</text>
+<text class="meta" x="27" y="149">6'1"  ·  178 LBS  ·  SHOOTS RIGHT</text>
 
 <line stroke="var(--rule)" x1="236" y1="26" x2="236" y2="134"/>
 
@@ -90,7 +91,7 @@
   <text class="ax" x="338" y="17"  text-anchor="middle">SKATING</text>
   <text class="ax" x="391" y="49"  >SENSE</text>
   <text class="ax" x="391" y="110" >PUCK</text>
-  <text class="ax" x="338" y="145" text-anchor="middle">PHYSICAL</text>
+  <text class="ax" x="338" y="142" text-anchor="middle">PHYSICAL</text>
   <text class="ax" x="285" y="110" text-anchor="end">STICK</text>
   <text class="ax" x="285" y="49"  text-anchor="end">MENTAL</text>
 </g>
