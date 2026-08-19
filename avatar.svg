@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="Leyla Egli sweater back, number 76">
+<defs>
+  <clipPath id="frame"><rect x="0" y="0" width="200" height="200" rx="4"/></clipPath>
+  <linearGradient id="lit" x1="0.1" y1="0" x2="0.9" y2="1">
+    <stop offset="0"    stop-color="#fff" stop-opacity="0.10"/>
+    <stop offset="0.45" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="1"    stop-color="#000" stop-opacity="0.28"/>
+  </linearGradient>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="7"/>
+  </filter>
+  <filter id="weave" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/>
+    <feColorMatrix in="n" type="saturate" values="0"/>
+  </filter>
+</defs>
+
+<style>
+  :root{ --red:#C0282D; --redLo:#A81F24; --wht:#F4F4F2; --dk:#14171c; }
+  @media (prefers-color-scheme: light){
+    :root{ --red:#B8232A; --redLo:#9C1B20; --wht:#FFFFFF; --dk:#101318; }
+  }
+  .plateTxt{ fill:var(--redLo); font:700 25px/1 "Arial Narrow","Haettenschweiler",Impact,sans-serif; letter-spacing:3px }
+  .numTxt{ fill:var(--wht); stroke:var(--dk); stroke-width:2.5; paint-order:stroke;
+           font:700 92px/1 "Arial Narrow","Haettenschweiler",Impact,sans-serif; letter-spacing:-2px }
+
+  /* tossed down, overshoots, wobbles once, settles. entrance only, no loop. */
+  .cloth{ transform-box:fill-box; transform-origin:center;
+          animation: land 1.15s cubic-bezier(.18,.7,.3,1) both; }
+  @keyframes land{
+    0%   { opacity:0; transform:rotate(-7deg) translate(6px,-16px) scale(1.07) }
+    30%  { opacity:1 }
+    55%  { transform:rotate(2.6deg) translate(-2px,3px) scale(1.005) }
+    75%  { transform:rotate(-1.1deg) translate(1px,-1px) scale(1) }
+    90%  { transform:rotate(0.4deg) }
+    100% { opacity:1; transform:rotate(0) translate(0,0) scale(1) }
+  }
+  .settle{ transform-box:fill-box; transform-origin:center;
+           animation: sag .9s cubic-bezier(.2,.75,.3,1) .12s both; }
+  @keyframes sag{
+    0%   { opacity:0; transform:translateY(-5px) rotate(-1.6deg) }
+    60%  { opacity:1; transform:translateY(1.5px) rotate(.5deg) }
+    100% { opacity:1; transform:translateY(0) rotate(0) }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .cloth,.settle{ animation:none; opacity:1; transform:none }
+  }
+</style>
+
+<g clip-path="url(#frame)">
+  <rect x="0" y="0" width="200" height="200" fill="var(--dk)"/>
+
+  <g class="cloth">
+    <rect x="-24" y="-24" width="248" height="248" fill="var(--red)"/>
+
+    <g filter="url(#soft)" opacity="0.55">
+      <path d="M-24,-24 C6,50 -8,150 4,224 L34,224 C20,150 34,50 10,-24 Z" fill="#000" opacity="0.30"/>
+      <path d="M46,-24 C62,60 44,150 58,224 L74,224 C62,150 78,60 62,-24 Z" fill="#fff" opacity="0.13"/>
+      <path d="M126,-24 C112,60 132,150 118,224 L142,224 C154,150 136,60 148,-24 Z" fill="#000" opacity="0.26"/>
+      <path d="M186,-24 C202,70 184,150 198,224 L224,224 L224,-24 Z" fill="#000" opacity="0.34"/>
+      <path d="M-24,96 C60,86 140,108 224,98 L224,120 C140,130 60,108 -24,118 Z" fill="#000" opacity="0.16"/>
+    </g>
+
+    <rect x="-24" y="-24" width="248" height="248" fill="url(#lit)"/>
+    <rect x="-24" y="-24" width="248" height="248" filter="url(#weave)" opacity="0.10"
+          style="mix-blend-mode:multiply"/>
+
+    <rect x="-24" y="-24" width="248" height="39" fill="var(--dk)"/>
+    <path d="M-24,15 C50,17 150,13 224,15 L224,19 C150,17 50,21 -24,19 Z" fill="var(--wht)"/>
+    <path d="M-24,20 L224,20 L224,32 C140,46 60,46 -24,32 Z" fill="var(--redLo)" opacity="0.85"/>
+
+    <g class="settle">
+      <rect x="24" y="46" width="152" height="30" fill="#000" opacity="0.22" transform="translate(2,3)"/>
+      <rect x="24" y="46" width="152" height="30" fill="var(--wht)"/>
+      <rect x="24" y="46" width="152" height="30" fill="none" stroke="var(--dk)" stroke-width="1.5"/>
+      <text class="plateTxt" x="100" y="68" text-anchor="middle">EGLI</text>
+    </g>
+
+    <g class="settle">
+      <text class="numTxt" x="100" y="156" text-anchor="middle">76</text>
+    </g>
+
+    <path d="M-24,172 C50,168 150,178 224,173 L224,181 C150,186 50,176 -24,180 Z" fill="var(--wht)"/>
+    <path d="M-24,180 C50,176 150,186 224,181 L224,192 C150,197 50,187 -24,191 Z" fill="var(--dk)"/>
+    <path d="M-24,191 C50,187 150,197 224,192 L224,197 C150,202 50,192 -24,196 Z" fill="var(--wht)"/>
+  </g>
+</g>
+<rect x="0.5" y="0.5" width="199" height="199" rx="4" fill="none" stroke="var(--dk)"/>
+</svg>
