@@ -1,0 +1,8 @@
+# The workflow decides whether to commit by diffing data.json, and both
+# generators write LF. Checking these out as CRLF on Windows would make every
+# local run look like a whole-file change.
+*.py             text eol=lf
+data.json        text eol=lf
+leyla.svg        text eol=lf
+sig.template.svg text eol=lf
+*.yml            text eol=lf
