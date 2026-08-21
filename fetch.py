@@ -17,8 +17,14 @@ import urllib.request
 PLAYER_ID = 2500  # portal pid, from portal.simulationhockey.com/player/2500
 
 PORTAL_PLAYER = "https://portal.simulationhockey.com/api/v1/player?pid={pid}"
-INDEX_TEAMS = "https://index.simulationhockey.com/api/v1/teams?league={league}"
-INDEX_STATS = "https://index.simulationhockey.com/api/v1/players/stats/{iid}?league={league}"
+INDEX_TEAM = "https://index.simulationhockey.com/api/v1/teams/{team}?league={league}"
+INDEX_STATS = "https://index.simulationhockey.com/api/v1/players/stats/{iid}?league={league}&type={phase}"
+
+# The index documents these as "rs", "ps" and "po". Those values are silently
+# ignored and fall through to regular season, so passing them looks like it
+# works and quietly gives the wrong data. Only the full words select anything.
+REGULAR = "regular"
+PLAYOFFS = "playoffs"
 
 # The index numbers its leagues in /api/v1/leagues, and the portal's own
 # indexRecords use that same numbering, so one map serves both lookups.
@@ -55,11 +61,12 @@ ATTRIBUTES = (
     "professionalism",
 )
 
-STAT_FIELDS = (
-    "season", "gamesPlayed", "goals", "assists", "points", "plusMinus", "pim",
+PHASE_FIELDS = (
+    "gamesPlayed", "goals", "assists", "points", "plusMinus", "pim",
     "hits", "shotsBlocked", "takeaways", "giveaways", "shotsOnGoal", "timeOnIce",
     "ppPoints", "shPoints", "ppTimeOnIce", "shTimeOnIce",
 )
+STAT_FIELDS = ("season",) + PHASE_FIELDS
 
 ADVANCED_FIELDS = ("CFPct", "FFPct", "PDO", "GF60", "GA60", "SF60", "SA60")
 
@@ -143,44 +150,67 @@ def find_index_id(player, league_id):
 
 
 def fetch_team(team_id, league_id):
-    teams = get_json(INDEX_TEAMS.format(league=league_id))
-    if not isinstance(teams, list) or not teams:
-        raise ShapeError(f"index /teams?league={league_id} returned no teams")
-    for team in teams:
-        if isinstance(team, dict) and team.get("id") == team_id:
-            require_fields(team, {"name": str, "abbreviation": str}, f"index team {team_id}")
-            return {"name": team["name"], "abbreviation": team["abbreviation"]}
-    raise ShapeError(
-        f"no team with id {team_id} in league {league_id}; "
-        f"saw ids {sorted(t.get('id') for t in teams if isinstance(t, dict))}"
-    )
+    team = get_json(INDEX_TEAM.format(team=team_id, league=league_id))
+    if not isinstance(team, dict) or not team:
+        raise ShapeError(f"index /teams/{team_id}?league={league_id} returned no team")
+    require_fields(team, {"name": str, "abbreviation": str}, f"index team {team_id}")
+    if team.get("id") != team_id:
+        raise ShapeError(f"asked index for team {team_id}, got {team.get('id')}")
+    return {"name": team["name"], "abbreviation": team["abbreviation"]}
+
+
+def fetch_phase(index_id, league_id, phase):
+    records = get_json(INDEX_STATS.format(iid=index_id, league=league_id, phase=phase))
+    if not isinstance(records, list):
+        raise ShapeError(f"index {phase} stats for {index_id} is not a list")
+    for record in records:
+        require_fields(record, {f: int for f in STAT_FIELDS}, f"index {phase} stats {index_id}")
+    return records
 
 
 def fetch_stats(index_id, league_id):
-    seasons = get_json(INDEX_STATS.format(iid=index_id, league=league_id))
-    if not isinstance(seasons, list) or not seasons:
-        raise ShapeError(f"index /players/stats/{index_id} returned no seasons")
-    for record in seasons:
-        require_fields(record, {f: int for f in STAT_FIELDS}, f"index stats {index_id}")
+    """The newest season she has played, and that season's playoffs once they start.
 
-    # Prefer the newest season she has actually played. At a season rollover the
-    # index publishes the new season before any games are simmed, and a rail full
-    # of zeroes is worse than last season's real line. The S-number on the sig
-    # names whichever season is shown, so this stays honest either way.
-    played = [r for r in seasons if r["gamesPlayed"] > 0]
-    latest = max(played or seasons, key=lambda r: r["season"])
+    One rule drives the whole lifecycle: the display season is the newest season
+    with regular-season games, and playoffs only ever attach to that same season.
 
-    advanced = latest.get("advancedStats")
+    So the playoff figures appear when the run begins and stay through the
+    offseason, because nothing newer has regular-season games yet. Preseason is
+    ignored entirely, which is why exhibition games never displace a real season.
+    The moment the next regular season is simmed, the display season advances and
+    the playoff figures drop with it.
+    """
+    regular_records = fetch_phase(index_id, league_id, REGULAR)
+    if not regular_records:
+        raise ShapeError(f"index returned no regular season records for {index_id}")
+
+    played = [r for r in regular_records if r["gamesPlayed"] > 0]
+    regular = max(played or regular_records, key=lambda r: r["season"])
+    season = regular["season"]
+
+    advanced = regular.get("advancedStats")
     if not isinstance(advanced, dict):
-        raise ShapeError(f"index stats S{latest['season']}: 'advancedStats' is not an object")
+        raise ShapeError(f"index stats S{season}: 'advancedStats' is not an object")
     missing = [f for f in ADVANCED_FIELDS if not isinstance(advanced.get(f), (int, float))]
     if missing:
-        raise ShapeError(
-            f"index stats S{latest['season']}: advancedStats missing {', '.join(missing)}"
-        )
+        raise ShapeError(f"index stats S{season}: advancedStats missing {', '.join(missing)}")
 
-    stats = {field: latest[field] for field in STAT_FIELDS}
-    stats["advanced"] = {field: advanced[field] for field in ADVANCED_FIELDS}
+    stats = {
+        "season": season,
+        "regular": {field: regular[field] for field in PHASE_FIELDS},
+    }
+    stats["regular"]["advanced"] = {field: advanced[field] for field in ADVANCED_FIELDS}
+
+    playoffs = next(
+        (
+            record
+            for record in fetch_phase(index_id, league_id, PLAYOFFS)
+            if record["season"] == season and record["gamesPlayed"] > 0
+        ),
+        None,
+    )
+    if playoffs:
+        stats["playoffs"] = {field: playoffs[field] for field in PHASE_FIELDS}
     return stats
 
 
@@ -208,11 +238,14 @@ def main():
     DATA_PATH.write_text(
         json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
     )
-    player = data["player"]
+    player, stats = data["player"], data["stats"]
+    playoffs = stats.get("playoffs")
     print(
         f"{player['name']}: {player['totalTPE']} TPE "
         f"({player['appliedTPE']} applied, {player['bankedTPE']} banked), "
-        f"{data['team']['name']}, S{data['stats']['season']} stats"
+        f"{data['team']['name']}, S{stats['season']} "
+        f"{stats['regular']['gamesPlayed']}gp regular"
+        + (f" + {playoffs['gamesPlayed']}gp playoffs" if playoffs else " (no playoff games)")
     )
     return 0
 
