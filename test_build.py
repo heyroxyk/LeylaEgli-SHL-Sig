@@ -13,6 +13,7 @@ payloads directly.
 """
 import json
 import pathlib
+import re
 import unittest
 from unittest import mock
 
@@ -137,14 +138,103 @@ class FormattingTests(unittest.TestCase):
             build.format_toi(1000, 0)
 
     def test_signs_plus_minus(self):
-        stats = dict(load_data()["stats"], plusMinus=-7)
-        self.assertEqual(build.stat_tokens(stats)["ST_PM"], "-7")
-        stats = dict(load_data()["stats"], plusMinus=21)
-        self.assertEqual(build.stat_tokens(stats)["ST_PM"], "+21")
+        regular = load_data()["stats"]["regular"]
+        self.assertEqual(build.counting_tokens(dict(regular, plusMinus=-7), "ST")["ST_PM"], "-7")
+        self.assertEqual(build.counting_tokens(dict(regular, plusMinus=21), "ST")["ST_PM"], "+21")
 
     def test_shooting_percentage_survives_zero_shots(self):
-        stats = dict(load_data()["stats"], shotsOnGoal=0, goals=0)
-        self.assertEqual(build.stat_tokens(stats)["ST_SHPCT"], "0.0")
+        regular = dict(load_data()["stats"]["regular"], shotsOnGoal=0, goals=0)
+        self.assertEqual(build.counting_tokens(regular, "ST")["ST_SHPCT"], "0.0")
+
+    def test_prefix_selects_the_phase(self):
+        regular = load_data()["stats"]["regular"]
+        self.assertIn("PO_GP", build.counting_tokens(regular, "PO"))
+        self.assertIn("ST_GP", build.counting_tokens(regular, "ST"))
+
+
+class CycleTimingTests(unittest.TestCase):
+    def test_six_cards_keep_the_original_loop(self):
+        timings = build.cycle_timings(6)
+        self.assertEqual(timings["CYCLE_SECONDS"], "21")
+        self.assertEqual(timings["CYCLE_IN"], "2.5")
+        self.assertEqual(timings["CYCLE_OUT"], "16.667")
+
+    def test_ten_cards_lengthen_the_loop_rather_than_the_pace(self):
+        timings = build.cycle_timings(10)
+        self.assertEqual(timings["CYCLE_SECONDS"], "35")
+        self.assertEqual(timings["CYCLE_OUT"], "10")
+
+    def test_dwell_is_constant_whatever_the_card_count(self):
+        """Adding cards must never speed the rotation up; a card that flashes past is unreadable."""
+        for count in range(1, 13):
+            seconds = float(build.cycle_timings(count)["CYCLE_SECONDS"])
+            self.assertAlmostEqual(seconds / count, build.CARD_DWELL_SECONDS, places=6)
+
+    def test_each_card_gets_a_distinct_slot(self):
+        delays = build.cycle_timings(10)["CYCLE_DELAYS"]
+        found = re.findall(r"\.c(\d+)\{animation-delay:(-[\d.]+)s\}", delays)
+        self.assertEqual([c for c, _ in found], [str(i) for i in range(2, 11)])
+        self.assertEqual(len(set(d for _, d in found)), 9)
+
+    def test_last_card_trails_by_one_dwell(self):
+        delays = build.cycle_timings(10)["CYCLE_DELAYS"]
+        self.assertIn(".c10{animation-delay:-3.5s}", delays)
+
+    def test_rejects_an_empty_rail(self):
+        with self.assertRaises(build.BuildError):
+            build.cycle_timings(0)
+
+
+class PlayoffCardTests(unittest.TestCase):
+    def setUp(self):
+        self.template = load_template()
+        self.data = load_data()
+
+    def without_playoffs(self):
+        stats = {k: v for k, v in self.data["stats"].items() if k != "playoffs"}
+        return {**self.data, "stats": stats}
+
+    def test_data_currently_has_a_playoff_run(self):
+        self.assertIn("playoffs", self.data["stats"])
+
+    def test_playoff_run_adds_four_cards(self):
+        svg = build.build(self.template, self.data)
+        self.assertEqual(build.count_cards(svg), 10)
+        self.assertIn("PO GP", svg)
+        self.assertIn("animation: cycle 35s", svg)
+
+    def test_no_playoff_run_leaves_six_cards(self):
+        svg = build.build(self.template, self.without_playoffs())
+        self.assertEqual(build.count_cards(svg), 6)
+        self.assertNotIn("PO GP", svg)
+        self.assertIn("animation: cycle 21s", svg)
+
+    def test_regular_season_cards_are_identical_either_way(self):
+        """Adding the playoff block must not disturb the six cards already there."""
+        with_po = build.build(self.template, self.data)
+        without = build.build(self.template, self.without_playoffs())
+        pattern = r'<g class="card c[1-6]">.*?</g>'
+        self.assertEqual(
+            re.findall(pattern, with_po, re.DOTALL), re.findall(pattern, without, re.DOTALL)
+        )
+
+    def test_possession_and_rate_metrics_stay_regular_season_only(self):
+        """PDO over four games is luck, not talent. It must never appear as a PO card."""
+        svg = build.build(self.template, self.data)
+        for metric in ("PO PDO", "PO CF%", "PO FF%", "PO GF/60", "PO SF/60"):
+            self.assertNotIn(metric, svg)
+
+    def test_build_markers_do_not_reach_the_output(self):
+        for payload in (self.data, self.without_playoffs()):
+            self.assertNotIn("PLAYOFF_CARDS", build.build(self.template, payload))
+
+    def test_rejects_a_template_with_no_playoff_block(self):
+        with self.assertRaises(build.BuildError):
+            build.prepare_template("<svg></svg>", True)
+
+    def test_rejects_a_gap_in_the_card_numbering(self):
+        with self.assertRaises(build.BuildError):
+            build.count_cards('<g class="card c1"></g><g class="card c3"></g>')
 
 
 class ThreePlacesTests(unittest.TestCase):
@@ -387,12 +477,17 @@ class FetchShapeTests(unittest.TestCase):
         with self.assertRaises(fetch.ShapeError):
             fetch.find_index_id(player, 0)
 
-    def test_rejects_an_unknown_team_id(self):
-        teams = [{"id": 4, "name": "Anchorage Armada", "abbreviation": "ANC"}]
-        with mock.patch.object(fetch, "get_json", return_value=teams):
+    def test_reads_the_single_team_endpoint(self):
+        team = {"id": 7, "name": "Detroit Falcons", "abbreviation": "DET"}
+        with mock.patch.object(fetch, "get_json", return_value=team):
+            self.assertEqual(fetch.fetch_team(7, 1)["name"], "Detroit Falcons")
+
+    def test_rejects_a_team_that_is_not_the_one_asked_for(self):
+        team = {"id": 4, "name": "Anchorage Armada", "abbreviation": "ANC"}
+        with mock.patch.object(fetch, "get_json", return_value=team):
             with self.assertRaises(fetch.ShapeError) as caught:
                 fetch.fetch_team(7, 1)
-        self.assertIn("no team with id 7", str(caught.exception))
+        self.assertIn("got 4", str(caught.exception))
 
     def stats_payload(self, **overrides):
         record = {
@@ -406,31 +501,83 @@ class FetchShapeTests(unittest.TestCase):
         record.update(overrides)
         return record
 
-    def test_takes_the_newest_played_season(self):
-        payload = [self.stats_payload(season=88), self.stats_payload(season=89, goals=11)]
-        with mock.patch.object(fetch, "get_json", return_value=payload):
-            stats = fetch.fetch_stats(3192, 1)
-        self.assertEqual(stats["season"], 89)
+    def fetch_with(self, regular, playoffs):
+        """fetch_stats calls the index twice: regular season first, then playoffs."""
+        with mock.patch.object(fetch, "get_json", side_effect=[regular, playoffs]):
+            return fetch.fetch_stats(3192, 1)
 
-    def test_skips_a_season_with_no_games_yet(self):
-        # At a rollover the index publishes the new season before anything is
-        # simmed. Last season's real line beats a rail full of zeroes.
-        payload = [self.stats_payload(season=89), self.stats_payload(season=90, gamesPlayed=0)]
-        with mock.patch.object(fetch, "get_json", return_value=payload):
-            stats = fetch.fetch_stats(3192, 1)
+    def test_takes_the_newest_played_season(self):
+        stats = self.fetch_with(
+            [self.stats_payload(season=88), self.stats_payload(season=89)], []
+        )
         self.assertEqual(stats["season"], 89)
+        self.assertNotIn("playoffs", stats)
+
+    def test_playoffs_attach_once_the_run_begins(self):
+        stats = self.fetch_with(
+            [self.stats_payload(season=89)],
+            [self.stats_payload(season=89, gamesPlayed=4, points=5)],
+        )
+        self.assertEqual(stats["season"], 89)
+        self.assertEqual(stats["playoffs"]["gamesPlayed"], 4)
+        self.assertEqual(stats["regular"]["gamesPlayed"], 66)
+
+    def test_playoffs_with_no_games_do_not_attach(self):
+        """Between the regular season ending and game one, the block must stay away."""
+        stats = self.fetch_with(
+            [self.stats_payload(season=89)], [self.stats_payload(season=89, gamesPlayed=0)]
+        )
+        self.assertNotIn("playoffs", stats)
+
+    def test_playoffs_from_an_older_season_are_ignored(self):
+        stats = self.fetch_with(
+            [self.stats_payload(season=89)],
+            [self.stats_payload(season=88, gamesPlayed=21)],
+        )
+        self.assertEqual(stats["season"], 89)
+        self.assertNotIn("playoffs", stats)
+
+    def test_a_run_survives_the_offseason(self):
+        """Nothing newer has regular-season games, so S89's run stays on the sig."""
+        stats = self.fetch_with(
+            [self.stats_payload(season=89), self.stats_payload(season=90, gamesPlayed=0)],
+            [self.stats_payload(season=89, gamesPlayed=4)],
+        )
+        self.assertEqual(stats["season"], 89)
+        self.assertIn("playoffs", stats)
+
+    def test_the_first_game_of_the_new_season_drops_the_run(self):
+        stats = self.fetch_with(
+            [self.stats_payload(season=89), self.stats_payload(season=90, gamesPlayed=1)],
+            [self.stats_payload(season=89, gamesPlayed=4)],
+        )
+        self.assertEqual(stats["season"], 90)
+        self.assertNotIn("playoffs", stats)
 
     def test_rejects_missing_advanced_stats(self):
-        payload = [self.stats_payload(advancedStats={"CFPct": 55.3})]
-        with mock.patch.object(fetch, "get_json", return_value=payload):
-            with self.assertRaises(fetch.ShapeError) as caught:
-                fetch.fetch_stats(3192, 1)
+        with self.assertRaises(fetch.ShapeError) as caught:
+            self.fetch_with([self.stats_payload(advancedStats={"CFPct": 55.3})], [])
         self.assertIn("PDO", str(caught.exception))
 
     def test_rejects_an_empty_stats_response(self):
-        with mock.patch.object(fetch, "get_json", return_value=[]):
-            with self.assertRaises(fetch.ShapeError):
-                fetch.fetch_stats(3192, 1)
+        with self.assertRaises(fetch.ShapeError):
+            self.fetch_with([], [])
+
+    def test_regular_and_playoffs_are_requested_separately(self):
+        with mock.patch.object(
+            fetch, "get_json", side_effect=[[self.stats_payload(season=89)], []]
+        ) as called:
+            fetch.fetch_stats(3192, 1)
+        phases = [call.args[0].rsplit("type=", 1)[-1] for call in called.call_args_list]
+        self.assertEqual(phases, [fetch.REGULAR, fetch.PLAYOFFS])
+
+    def test_preseason_is_never_requested(self):
+        """Seven exhibition games must never displace a real season."""
+        with mock.patch.object(
+            fetch, "get_json", side_effect=[[self.stats_payload(season=89)], []]
+        ) as called:
+            fetch.fetch_stats(3192, 1)
+        self.assertNotIn("preseason", " ".join(call.args[0] for call in called.call_args_list))
 
 
 class DataFileTests(unittest.TestCase):
@@ -442,6 +589,16 @@ class DataFileTests(unittest.TestCase):
 
     def test_data_json_carries_every_attribute(self):
         self.assertEqual(set(load_data()["attributes"]), set(fetch.ATTRIBUTES))
+
+    def test_stats_are_stored_per_phase(self):
+        stats = load_data()["stats"]
+        self.assertIn("season", stats)
+        self.assertGreaterEqual(set(stats["regular"]), set(fetch.PHASE_FIELDS))
+        self.assertIn("advanced", stats["regular"])
+        if "playoffs" in stats:
+            self.assertGreaterEqual(set(stats["playoffs"]), set(fetch.PHASE_FIELDS))
+            # Advanced metrics are regular-season only, by design.
+            self.assertNotIn("advanced", stats["playoffs"])
 
 
 if __name__ == "__main__":

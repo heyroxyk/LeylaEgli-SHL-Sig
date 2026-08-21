@@ -39,16 +39,18 @@
   @keyframes fade{ from{opacity:0} to{opacity:1} }
   @keyframes bloom{ from{transform:scale(0); opacity:0} to{transform:scale(1); opacity:1} }
 
-  /* six cards at 3.5s each. the percentages below are that 3.5s slot expressed
-     against the 21s loop, so changing the card count means changing both. */
-  .card{ opacity:0; animation: cycle 21s ease-in-out infinite; }
-  .c2{animation-delay:-17.5s} .c3{animation-delay:-14s}
-  .c4{animation-delay:-10.5s} .c5{animation-delay:-7s} .c6{animation-delay:-3.5s}
+  /* Six regular-season cards, joined by four playoff cards while a run is on
+     the books. Each card holds 3.5s either way, so the loop lengthens rather
+     than speeding up. build.py writes every timing below from the live card
+     count: the percentages are one card's turn expressed against the whole
+     loop, so they cannot be hardcoded without breaking the day a card appears. */
+  .card{ opacity:0; animation: cycle {{CYCLE_SECONDS}}s ease-in-out infinite; }
+  {{CYCLE_DELAYS}}
   @keyframes cycle{
     0%   {opacity:0; transform:translateY(6px)}
-    2.5% {opacity:1; transform:translateY(0)}
-    14.2%{opacity:1; transform:translateY(0)}
-    16.7%{opacity:0; transform:translateY(-6px)}
+    {{CYCLE_IN}}% {opacity:1; transform:translateY(0)}
+    {{CYCLE_HOLD}}%{opacity:1; transform:translateY(0)}
+    {{CYCLE_OUT}}%{opacity:0; transform:translateY(-6px)}
     100% {opacity:0; transform:translateY(-6px)}
   }
   @media (prefers-reduced-motion: reduce){
@@ -185,4 +187,30 @@
   <text class="lbl" x="324" y="180">PP ATOI</text><text class="val" x="324" y="195">{{ST_PPTOI}}</text>
   <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">{{ST_SHTOI}}</text>
 </g>
+<!--PLAYOFF_CARDS_START-->
+<g class="card c7">
+  <text class="lbl" x="24"  y="180">PO GP</text><text class="val" x="24"  y="195">{{PO_GP}}</text>
+  <text class="lbl" x="174" y="180">PO G</text><text class="val" x="174" y="195">{{PO_G}}</text>
+  <text class="lbl" x="324" y="180">PO A</text><text class="val" x="324" y="195">{{PO_A}}</text>
+  <text class="lbl" x="474" y="180">PO PTS</text><text class="val" x="474" y="195">{{PO_P}}</text>
+</g>
+<g class="card c8">
+  <text class="lbl" x="24"  y="180">PO +/-</text><text class="val" x="24"  y="195">{{PO_PM}}</text>
+  <text class="lbl" x="174" y="180">PO PIM</text><text class="val" x="174" y="195">{{PO_PIM}}</text>
+  <text class="lbl" x="324" y="180">PO SOG</text><text class="val" x="324" y="195">{{PO_SOG}}</text>
+  <text class="lbl" x="474" y="180">PO S%</text><text class="val" x="474" y="195">{{PO_SHPCT}}</text>
+</g>
+<g class="card c9">
+  <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">{{PO_HITS}}</text>
+  <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">{{PO_BLK}}</text>
+  <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">{{PO_TK}}</text>
+  <text class="lbl" x="474" y="180">PO GV</text><text class="val" x="474" y="195">{{PO_GV}}</text>
+</g>
+<g class="card c10">
+  <text class="lbl" x="24"  y="180">PO PPP</text><text class="val" x="24"  y="195">{{PO_PPP}}</text>
+  <text class="lbl" x="174" y="180">PO SHP</text><text class="val" x="174" y="195">{{PO_SHP}}</text>
+  <text class="lbl" x="324" y="180">PO PP ATOI</text><text class="val" x="324" y="195">{{PO_PPTOI}}</text>
+  <text class="lbl" x="474" y="180">PO SH ATOI</text><text class="val" x="474" y="195">{{PO_SHTOI}}</text>
+</g>
+<!--PLAYOFF_CARDS_END-->
 </svg>

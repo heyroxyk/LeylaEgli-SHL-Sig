@@ -41,6 +41,17 @@ RADAR_AXES = (
 
 LABEL_PAD = 6.0  # breathing room between a bar label and the zone edge it sits against
 
+# Ticker pacing. Every card holds for the same length of time no matter how many
+# are in the rotation, so adding cards lengthens the loop rather than speeding it
+# up. A card that flashes past cannot be read at all; a card late in a long loop
+# is at least legible to anyone who lingers.
+CARD_DWELL_SECONDS = 3.5
+CARD_FADE_IN = 0.15   # fraction of a card's turn spent fading in
+CARD_FADE_OUT = 0.85  # fraction at which it starts fading out
+
+REGULAR_CARDS = 6
+PLAYOFF_CARDS = 4
+
 MIN_OUTPUT_BYTES = 24000  # the logo alone is ~18KB; anything near this lost the mark
 SIZE_TOLERANCE = 0.10
 MIN_LOGO_PATH_BYTES = 17000
@@ -147,40 +158,111 @@ def bar_geometry(total_tpe, applied_tpe):
     }
 
 
-def stat_tokens(stats):
+def counting_tokens(stats, prefix):
+    """Figures that mean the same thing over four games as over sixty-six.
+
+    Goals, hits and blocks are facts about what happened. They are simply small
+    when the sample is small, which is honest. Contrast advanced_tokens below.
+    """
     games = stats["gamesPlayed"]
     shots = stats["shotsOnGoal"]
-    advanced = stats["advanced"]
     shooting_pct = (stats["goals"] / shots * 100) if shots else 0.0
     return {
-        "ST_GP": str(games),
-        "ST_G": str(stats["goals"]),
-        "ST_A": str(stats["assists"]),
-        "ST_P": str(stats["points"]),
-        "ST_PM": f"{stats['plusMinus']:+d}",
-        "ST_PIM": str(stats["pim"]),
-        "ST_SOG": str(shots),
-        "ST_SHPCT": fmt1(shooting_pct),
-        "ST_HITS": str(stats["hits"]),
-        "ST_BLK": str(stats["shotsBlocked"]),
-        "ST_TK": str(stats["takeaways"]),
-        "ST_GV": str(stats["giveaways"]),
-        "ST_CF": fmt1(advanced["CFPct"]),
-        "ST_FF": fmt1(advanced["FFPct"]),
-        "ST_PDO": fmt1(advanced["PDO"]),
-        "ST_TOIGP": format_toi(stats["timeOnIce"], games),
-        "ST_GF60": fmt1(advanced["GF60"]),
-        "ST_GA60": fmt1(advanced["GA60"]),
-        "ST_SF60": fmt1(advanced["SF60"]),
-        "ST_SA60": fmt1(advanced["SA60"]),
-        "ST_PPP": str(stats["ppPoints"]),
-        "ST_SHP": str(stats["shPoints"]),
-        "ST_PPTOI": format_toi(stats["ppTimeOnIce"], games),
-        "ST_SHTOI": format_toi(stats["shTimeOnIce"], games),
+        f"{prefix}_GP": str(games),
+        f"{prefix}_G": str(stats["goals"]),
+        f"{prefix}_A": str(stats["assists"]),
+        f"{prefix}_P": str(stats["points"]),
+        f"{prefix}_PM": f"{stats['plusMinus']:+d}",
+        f"{prefix}_PIM": str(stats["pim"]),
+        f"{prefix}_SOG": str(shots),
+        f"{prefix}_SHPCT": fmt1(shooting_pct),
+        f"{prefix}_HITS": str(stats["hits"]),
+        f"{prefix}_BLK": str(stats["shotsBlocked"]),
+        f"{prefix}_TK": str(stats["takeaways"]),
+        f"{prefix}_GV": str(stats["giveaways"]),
+        f"{prefix}_PPP": str(stats["ppPoints"]),
+        f"{prefix}_SHP": str(stats["shPoints"]),
+        f"{prefix}_TOIGP": format_toi(stats["timeOnIce"], games),
+        f"{prefix}_PPTOI": format_toi(stats["ppTimeOnIce"], games),
+        f"{prefix}_SHTOI": format_toi(stats["shTimeOnIce"], games),
     }
 
 
-def build_tokens(data):
+def advanced_tokens(stats, prefix):
+    """Possession and rate metrics, which estimate true talent rather than record events.
+
+    Deliberately regular-season only. Over a short playoff run these are noise:
+    PDO regresses to 100 by construction, so a four-game 113.3 describes luck,
+    not the player, and putting it on the sig beside a 66-game number would
+    invite exactly the wrong comparison.
+    """
+    advanced = stats["advanced"]
+    return {
+        f"{prefix}_CF": fmt1(advanced["CFPct"]),
+        f"{prefix}_FF": fmt1(advanced["FFPct"]),
+        f"{prefix}_PDO": fmt1(advanced["PDO"]),
+        f"{prefix}_GF60": fmt1(advanced["GF60"]),
+        f"{prefix}_GA60": fmt1(advanced["GA60"]),
+        f"{prefix}_SF60": fmt1(advanced["SF60"]),
+        f"{prefix}_SA60": fmt1(advanced["SA60"]),
+    }
+
+
+def trim(value, places):
+    """Shortest CSS-safe form: 21 rather than 21.00, 14.167 rather than 14.16700."""
+    text = f"{value:.{places}f}".rstrip("0").rstrip(".")
+    return text or "0"
+
+
+def cycle_timings(card_count):
+    """Animation timings for a rail of card_count cards.
+
+    The keyframe percentages are one card's turn expressed against the whole
+    loop, so they have to move with the card count. Hardcoding them is what
+    silently breaks the rotation when a card is added.
+    """
+    if card_count < 1:
+        raise BuildError("the ticker rail needs at least one card")
+    dwell = CARD_DWELL_SECONDS
+    total = dwell * card_count
+    slot = 100.0 / card_count  # one card's share of the loop, as a percentage
+
+    # Negative delays start each card partway through the loop, so card i comes
+    # up at (i-1) * dwell seconds. Card 1 needs none; it leads.
+    delays = " ".join(
+        f".c{i}{{animation-delay:-{trim(total - (i - 1) * dwell, 2)}s}}"
+        for i in range(2, card_count + 1)
+    )
+    return {
+        "CYCLE_SECONDS": trim(total, 2),
+        "CYCLE_DELAYS": delays,
+        "CYCLE_IN": trim(slot * CARD_FADE_IN, 3),
+        "CYCLE_HOLD": trim(slot * CARD_FADE_OUT, 3),
+        "CYCLE_OUT": trim(slot, 3),
+    }
+
+
+def prepare_template(template, has_playoffs):
+    """Keep or drop the playoff card block, then strip the markers either way.
+
+    The cards live in the template so the design stays in one file; only the
+    decision to include them lives here.
+    """
+    region = r"[ \t]*<!--PLAYOFF_CARDS_START-->\n(.*?)[ \t]*<!--PLAYOFF_CARDS_END-->\n"
+    match = re.search(region, template, re.DOTALL)
+    if not match:
+        raise BuildError("template has no <!--PLAYOFF_CARDS_START/END--> block")
+    return re.sub(region, match.group(1) if has_playoffs else "", template, flags=re.DOTALL)
+
+
+def count_cards(template):
+    numbers = sorted(int(n) for n in re.findall(r'class="card c(\d+)"', template))
+    if numbers != list(range(1, len(numbers) + 1)):
+        raise BuildError(f"card classes are not a contiguous run from c1: found {numbers}")
+    return len(numbers)
+
+
+def build_tokens(data, card_count):
     player = data["player"]
     team = data["team"]
     stats = data["stats"]
@@ -203,7 +285,11 @@ def build_tokens(data):
         "SEASON": str(stats["season"]),
     }
     tokens.update(bar_geometry(player["totalTPE"], player["appliedTPE"]))
-    tokens.update(stat_tokens(stats))
+    tokens.update(cycle_timings(card_count))
+    tokens.update(counting_tokens(stats["regular"], "ST"))
+    tokens.update(advanced_tokens(stats["regular"], "ST"))
+    if "playoffs" in stats:
+        tokens.update(counting_tokens(stats["playoffs"], "PO"))
 
     points = radar_points(data["attributes"])
     tokens["RADAR_POINTS"] = " ".join(f"{fmt1(x)},{fmt1(y)}" for x, y in points)
@@ -357,8 +443,19 @@ def validate(svg, template):
 
 def build(template, data):
     """Render and validate. Raises BuildError rather than returning bad markup."""
-    svg = render(template, build_tokens(data))
-    errors = validate(svg, template)
+    has_playoffs = "playoffs" in data["stats"]
+    prepared = prepare_template(template, has_playoffs)
+
+    card_count = count_cards(prepared)
+    expected = REGULAR_CARDS + (PLAYOFF_CARDS if has_playoffs else 0)
+    if card_count != expected:
+        raise BuildError(
+            f"expected {expected} cards with playoffs "
+            f"{'present' if has_playoffs else 'absent'}, template has {card_count}"
+        )
+
+    svg = render(prepared, build_tokens(data, card_count))
+    errors = validate(svg, prepared)
     if errors:
         raise BuildError("refusing to write leyla.svg:\n  - " + "\n  - ".join(errors))
     return svg
