@@ -167,7 +167,7 @@
   <text class="lbl" x="24"  y="180">HITS</text><text class="val" x="24"  y="195">{{ST_HITS}}</text>
   <text class="lbl" x="174" y="180">BLK</text><text class="val" x="174" y="195">{{ST_BLK}}</text>
   <text class="lbl" x="324" y="180">TK</text><text class="val" x="324" y="195">{{ST_TK}}</text>
-  <text class="lbl" x="474" y="180">GV</text><text class="val" x="474" y="195">{{ST_GV}}</text>
+  <text class="lbl" x="474" y="180">TK-GV</text><text class="val" x="474" y="195">{{ST_TKGV}}</text>
 </g>
 <g class="card c4">
   <text class="lbl" x="24"  y="180">CF%</text><text class="val" x="24"  y="195">{{ST_CF}}</text>
@@ -204,7 +204,7 @@
   <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">{{PO_HITS}}</text>
   <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">{{PO_BLK}}</text>
   <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">{{PO_TK}}</text>
-  <text class="lbl" x="474" y="180">PO GV</text><text class="val" x="474" y="195">{{PO_GV}}</text>
+  <text class="lbl" x="474" y="180">PO TK-GV</text><text class="val" x="474" y="195">{{PO_TKGV}}</text>
 </g>
 <g class="card c10">
   <text class="lbl" x="24"  y="180">PO PPP</text><text class="val" x="24"  y="195">{{PO_PPP}}</text>

@@ -167,7 +167,7 @@
   <text class="lbl" x="24"  y="180">HITS</text><text class="val" x="24"  y="195">129</text>
   <text class="lbl" x="174" y="180">BLK</text><text class="val" x="174" y="195">86</text>
   <text class="lbl" x="324" y="180">TK</text><text class="val" x="324" y="195">81</text>
-  <text class="lbl" x="474" y="180">GV</text><text class="val" x="474" y="195">22</text>
+  <text class="lbl" x="474" y="180">TK-GV</text><text class="val" x="474" y="195">+59</text>
 </g>
 <g class="card c4">
   <text class="lbl" x="24"  y="180">CF%</text><text class="val" x="24"  y="195">55.3</text>
@@ -203,7 +203,7 @@
   <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">10</text>
   <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">7</text>
   <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">6</text>
-  <text class="lbl" x="474" y="180">PO GV</text><text class="val" x="474" y="195">1</text>
+  <text class="lbl" x="474" y="180">PO TK-GV</text><text class="val" x="474" y="195">+5</text>
 </g>
 <g class="card c10">
   <text class="lbl" x="24"  y="180">PO PPP</text><text class="val" x="24"  y="195">1</text>

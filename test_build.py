@@ -146,6 +146,24 @@ class FormattingTests(unittest.TestCase):
         regular = dict(load_data()["stats"]["regular"], shotsOnGoal=0, goals=0)
         self.assertEqual(build.counting_tokens(regular, "ST")["ST_SHPCT"], "0.0")
 
+    def test_takeaway_differential_is_signed(self):
+        regular = load_data()["stats"]["regular"]
+        tokens = build.counting_tokens(dict(regular, takeaways=81, giveaways=22), "ST")
+        self.assertEqual(tokens["ST_TKGV"], "+59")
+
+    def test_takeaway_differential_goes_negative(self):
+        regular = load_data()["stats"]["regular"]
+        tokens = build.counting_tokens(dict(regular, takeaways=9, giveaways=21), "ST")
+        self.assertEqual(tokens["ST_TKGV"], "-12")
+
+    def test_takeaways_and_differential_recover_giveaways(self):
+        """The card drops raw giveaways only because these two reconstruct them."""
+        regular = load_data()["stats"]["regular"]
+        tokens = build.counting_tokens(regular, "ST")
+        self.assertEqual(
+            int(tokens["ST_TK"]) - int(tokens["ST_TKGV"]), regular["giveaways"]
+        )
+
     def test_prefix_selects_the_phase(self):
         regular = load_data()["stats"]["regular"]
         self.assertIn("PO_GP", build.counting_tokens(regular, "PO"))

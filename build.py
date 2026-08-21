@@ -180,6 +180,9 @@ def counting_tokens(stats, prefix):
         f"{prefix}_BLK": str(stats["shotsBlocked"]),
         f"{prefix}_TK": str(stats["takeaways"]),
         f"{prefix}_GV": str(stats["giveaways"]),
+        # Shown instead of raw giveaways. Takeaways and this net recover the
+        # giveaway count exactly, so the card loses nothing by carrying it.
+        f"{prefix}_TKGV": f"{stats['takeaways'] - stats['giveaways']:+d}",
         f"{prefix}_PPP": str(stats["ppPoints"]),
         f"{prefix}_SHP": str(stats["shPoints"]),
         f"{prefix}_TOIGP": format_toi(stats["timeOnIce"], games),
