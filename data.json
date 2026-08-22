@@ -46,22 +46,22 @@
   },
   "stats": {
     "playoffs": {
-      "assists": 2,
-      "gamesPlayed": 4,
-      "giveaways": 1,
+      "assists": 3,
+      "gamesPlayed": 6,
+      "giveaways": 3,
       "goals": 3,
-      "hits": 10,
-      "pim": 0,
-      "plusMinus": 6,
-      "points": 5,
+      "hits": 16,
+      "pim": 4,
+      "plusMinus": 5,
+      "points": 6,
       "ppPoints": 1,
-      "ppTimeOnIce": 463,
+      "ppTimeOnIce": 639,
       "shPoints": 0,
-      "shTimeOnIce": 412,
-      "shotsBlocked": 7,
-      "shotsOnGoal": 10,
-      "takeaways": 6,
-      "timeOnIce": 6017
+      "shTimeOnIce": 425,
+      "shotsBlocked": 12,
+      "shotsOnGoal": 13,
+      "takeaways": 10,
+      "timeOnIce": 8838
     },
     "regular": {
       "advanced": {

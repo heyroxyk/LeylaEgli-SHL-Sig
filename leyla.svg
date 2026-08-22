@@ -188,27 +188,27 @@
   <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">2:19</text>
 </g>
 <g class="card c7">
-  <text class="lbl" x="24"  y="180">PO GP</text><text class="val" x="24"  y="195">4</text>
+  <text class="lbl" x="24"  y="180">PO GP</text><text class="val" x="24"  y="195">6</text>
   <text class="lbl" x="174" y="180">PO G</text><text class="val" x="174" y="195">3</text>
-  <text class="lbl" x="324" y="180">PO A</text><text class="val" x="324" y="195">2</text>
-  <text class="lbl" x="474" y="180">PO PTS</text><text class="val" x="474" y="195">5</text>
+  <text class="lbl" x="324" y="180">PO A</text><text class="val" x="324" y="195">3</text>
+  <text class="lbl" x="474" y="180">PO PTS</text><text class="val" x="474" y="195">6</text>
 </g>
 <g class="card c8">
-  <text class="lbl" x="24"  y="180">PO +/-</text><text class="val" x="24"  y="195">+6</text>
-  <text class="lbl" x="174" y="180">PO PIM</text><text class="val" x="174" y="195">0</text>
-  <text class="lbl" x="324" y="180">PO SOG</text><text class="val" x="324" y="195">10</text>
-  <text class="lbl" x="474" y="180">PO S%</text><text class="val" x="474" y="195">30.0</text>
+  <text class="lbl" x="24"  y="180">PO +/-</text><text class="val" x="24"  y="195">+5</text>
+  <text class="lbl" x="174" y="180">PO PIM</text><text class="val" x="174" y="195">4</text>
+  <text class="lbl" x="324" y="180">PO SOG</text><text class="val" x="324" y="195">13</text>
+  <text class="lbl" x="474" y="180">PO S%</text><text class="val" x="474" y="195">23.1</text>
 </g>
 <g class="card c9">
-  <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">10</text>
-  <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">7</text>
-  <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">6</text>
-  <text class="lbl" x="474" y="180">PO TK-GV</text><text class="val" x="474" y="195">+5</text>
+  <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">16</text>
+  <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">12</text>
+  <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">10</text>
+  <text class="lbl" x="474" y="180">PO TK-GV</text><text class="val" x="474" y="195">+7</text>
 </g>
 <g class="card c10">
   <text class="lbl" x="24"  y="180">PO PPP</text><text class="val" x="24"  y="195">1</text>
   <text class="lbl" x="174" y="180">PO SHP</text><text class="val" x="174" y="195">0</text>
-  <text class="lbl" x="324" y="180">PO PP ATOI</text><text class="val" x="324" y="195">1:56</text>
-  <text class="lbl" x="474" y="180">PO SH ATOI</text><text class="val" x="474" y="195">1:43</text>
+  <text class="lbl" x="324" y="180">PO PP ATOI</text><text class="val" x="324" y="195">1:46</text>
+  <text class="lbl" x="474" y="180">PO SH ATOI</text><text class="val" x="474" y="195">1:11</text>
 </g>
 </svg>
