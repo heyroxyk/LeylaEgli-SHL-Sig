@@ -50,9 +50,12 @@
   @keyframes fillApp{ from{width:0} to{width:{{TPE_APPLIED_PX}}px} }
   @keyframes headIn{ from{opacity:0} to{opacity:1} }
 
-  .mark{ animation: fade .8s ease-out .55s both; }
+  /* The placement transform lives on the INNER group on purpose. A CSS
+     transform here would override the SVG transform attribute rather than
+     compose with it, which throws the artwork across the canvas. */
+  .mark{ transform-origin:535px 76px; animation: markIn 1s cubic-bezier(.2,.8,.2,1) .45s both; }
   .shape{ transform-origin:338px 78px; animation: bloom 1.1s cubic-bezier(.2,.8,.2,1) .35s both; }
-  @keyframes fade{ from{opacity:0} to{opacity:1} }
+  @keyframes markIn{ from{opacity:0; transform:scale(.94)} to{opacity:1; transform:scale(1)} }
   @keyframes bloom{ from{transform:scale(0); opacity:0} to{transform:scale(1); opacity:1} }
 
   /* Six regular-season cards, joined by four playoff cards while a run is on
@@ -124,43 +127,14 @@
 
 <line stroke="var(--rule)" x1="446" y1="26" x2="446" y2="134"/>
 
-<!-- COLUMN 3: club mark. The crest is fetched into logo.svg from the league's
-     own sprite stack, so it follows her to a new club on its own; build.py
-     sizes it and works out which arc of the ring it may cross. The dark
-     medallion keeps pale artwork alive against a light page. -->
-<g transform="translate(534,70)">
-  <circle r="42" fill="var(--well)"/>
-  <circle r="42" fill="none" stroke="var(--rule)"/>
-
-  <!-- The ring is drawn twice, deliberately. This pass sits BEHIND the crest so
-       that artwork held inside the medallion reads as contained. The pass after
-       the crest redraws only the arc the crest is not allowed to cross, which
-       is what makes the parts that do cross read as breaking out rather than
-       sitting behind glass. A crest that breaks nothing drops the second pass. -->
-  <circle r="42" fill="none" stroke="var(--accent)" stroke-width="2.5"
-          stroke-dasharray="263.9" stroke-dashoffset="263.9" transform="rotate(-90)">
-    <animate attributeName="stroke-dashoffset" from="263.9" to="0" dur="1.4s" begin="0.3s"
-             fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-  </circle>
-
-  <clipPath id="crest">{{MARK_CLIP}}</clipPath>
-  <g class="mark" clip-path="url(#crest)">
-    <g transform="{{MARK_TRANSFORM}}"><!--CLUB_MARK--></g>
-  </g>
-<!--RING_FRONT_START-->
-  <path d="{{RING_FRONT_D}}" fill="none" stroke="var(--accent)" stroke-width="2.5"
-        stroke-dasharray="{{RING_FRONT_LEN}}" stroke-dashoffset="{{RING_FRONT_LEN}}">
-    <animate attributeName="stroke-dashoffset" from="{{RING_FRONT_LEN}}" to="0" dur="1.4s"
-             begin="0.3s" fill="freeze" calcMode="spline" keySplines="0.2 0.8 0.2 1"/>
-  </path>
-<!--RING_FRONT_END-->
+<!-- COLUMN 3: the club's lockup, exactly as the league draws it. There is no
+     medallion and no separate club name any more: the artwork already carries
+     its own wordmark, and setting that beside a text copy of the same words was
+     saying it twice. Freed of a ring to fit inside, it can also run about half
+     as large again, which is what makes its smaller line legible at all. -->
+<g class="mark">
+  <g transform="{{MARK_TRANSFORM}}"><!--CLUB_MARK--></g>
 </g>
-<!-- The club, and nothing else. Its league is left to the crest and to the
-     aria-label; the season sits on the rail with the numbers it describes; and
-     where those numbers were earned is deliberately unstated. data.json still
-     records stats.league and stats.team, so any of it can be surfaced again
-     without another API change. -->
-<text class="team" x="534" y="134" text-anchor="middle" style="font-size:{{TEAM_SIZE}}px">{{TEAM}}</text>
 
 <!-- THE DIVIDER IS THE BAR. Full 620 width = 2000 TPE.
      The dividers at 155/310/465 cut it into four 500-TPE segments. They are

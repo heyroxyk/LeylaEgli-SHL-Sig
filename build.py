@@ -249,83 +249,19 @@ def cycle_timings(card_count):
 # club mark
 #
 # The crest is fetched into logo.svg from the league's sprite stack, so it
-# changes on its own when she is traded. What cannot be automatic is how a
-# given crest sits in the medallion: the marks differ in kind, not degree.
+# changes on its own when she is traded. All that is left to decide is how
+# large it sits, which cannot be automatic: the leagues draw their marks to
+# wildly different proportions, some a compact crest and some a wide lockup.
 # --------------------------------------------------------------------------
 
-MEDALLION_RADIUS = 42.0
-MARK_CLIP_REACH = 95.0  # how far past the ring a break-out sector extends
+MARK_CENTRE_X = 535.0
+MARK_CENTRE_Y = 76.0
 
-# Hand-tuned per club. Detroit's crest is compact and fills a square, so it
-# needs nothing. Tampa Bay's is a wide lockup whose wordmark spells out the club
-# name already printed under the medallion and turns to mush at 84px, so that
-# band is dropped and the remainder scaled up.
-#   drop   - discard paths lying wholly within this (y0, y1) band of the source
-#   box    - size the remaining artwork is fitted to, against the 84px ring
-#   focus  - point of the source artwork to sit on the medallion's centre;
-#            defaults to the middle of the viewBox
-#   breaks - arc, clockwise from twelve, through which artwork may cross the ring
-#
-# Measure `breaks` from the RENDERED artwork, never from path coordinates, and
-# re-measure it whenever `box` or `focus` changes, because both move the artwork
-# against the ring. A filled shape covers far more arc than its corner points do:
-# this spike has vertices spanning 43-49 degrees but fills 42-62, and a wedge cut
-# to the vertices takes a notch out of it. The crest leaves the ring in five
-# places; these bounds pass the spike (42-62), the jaw edge (87-92) and the snout
-# (104-123), and hold back the two triangle corners at 139-176 and 263-279.
-# Tampa Bay's focus is the fish's own ink centre, measured from a render. With
-# the wordmark dropped, the artwork's geometric middle falls 109 units below the
-# fish, because the triangle keeps running on past it, so centring on the box
-# would leave the fish riding high in the medallion.
-MARK_PRESENTATION = {
-    "Tampa_Bay": {"drop": (410.0, 760.0), "box": 104.0,
-                  "focus": (500.0, 337.0), "breaks": (32.0, 130.0)},
-    "Detroit": {"drop": None, "box": 80.0, "focus": None, "breaks": None},
-}
-DEFAULT_PRESENTATION = {"drop": None, "box": 80.0, "focus": None, "breaks": None}
-
-# SVG lets numbers run together wherever the next one starts with a sign or a
-# decimal point, so "758.629.943-3.8" is three numbers and the data cannot be
-# split on whitespace.
-PATH_NUMBER = re.compile(r"[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?")
-PATH_ARGC = {"m": 2, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7, "z": 0}
-
-
-def path_y_range(d):
-    """Vertical extent of one path, in its own user units.
-
-    Control points count toward the range rather than being solved for, which
-    overstates the extent slightly. That is the safe direction: it can only make
-    a path look too tall to drop, never too short.
-    """
-    y = start_y = 0.0
-    seen = []
-    for command, arguments in re.findall(
-        r"([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)", d
-    ):
-        low, relative = command.lower(), command.islower()
-        count = PATH_ARGC[low]
-        numbers = [float(m.group()) for m in PATH_NUMBER.finditer(arguments)]
-        if count == 0:
-            y = start_y
-            continue
-        for offset in range(0, max(len(numbers) - count + 1, 0), count):
-            group = numbers[offset : offset + count]
-            if low == "h":
-                pass
-            elif low == "v":
-                y = y + group[0] if relative else group[0]
-            elif low == "a":
-                y = y + group[6] if relative else group[6]
-            else:
-                for index in range(1, count - 1, 2):
-                    seen.append(y + group[index] if relative else group[index])
-                y = y + group[count - 1] if relative else group[count - 1]
-            seen.append(y)
-            if low == "m":
-                start_y = y
-                low = "l"  # pairs after a moveto are implicit linetos
-    return (min(seen), max(seen)) if seen else None
+# Fitted by the artwork's longer side. Tampa Bay's lockup carries its own
+# wordmark, and 132 is the size at which its smaller line stays legible while
+# the whole thing still clears the column divider.
+MARK_PRESENTATION = {"Tampa_Bay": {"box": 132.0}}
+DEFAULT_PRESENTATION = {"box": 120.0}
 
 
 def read_mark(markup):
@@ -344,82 +280,18 @@ def read_mark(markup):
     return identifier.group(1) if identifier else "", numbers, body
 
 
-def drop_band(body, band):
-    """Remove paths lying wholly inside a horizontal band of the source artwork.
-
-    Wholly inside, not merely overlapping: the club's backing shapes run the full
-    height of the mark and must survive, while the lettering sits entirely within
-    the band. Anything straddling it is kept, because dropping it would take a
-    bite out of artwork that is still wanted.
-    """
-    if band is None:
-        return body
-    low, high = band
-    kept, dropped = [], 0
-    for element in re.findall(r"<path\b[^>]*?/>|<path\b[^>]*?>", body):
-        data = re.search(r'\sd="([^"]+)"', element)
-        extent = path_y_range(data.group(1)) if data else None
-        if extent and low <= extent[0] and extent[1] <= high:
-            dropped += 1
-            continue
-        kept.append(element)
-    if not dropped:
-        raise BuildError(
-            f"mark presentation asks to drop the {low:.0f}-{high:.0f} band "
-            "but no path lies within it; the artwork changed shape"
-        )
-    return "".join(kept)
-
-
-def polar(degrees_clockwise_from_twelve, radius):
-    radians = math.radians(degrees_clockwise_from_twelve)
-    return radius * math.sin(radians), -radius * math.cos(radians)
-
-
 def mark_geometry(markup):
-    """Placement, clip shape and front-of-ring arc for the fetched crest."""
+    """Where the fetched crest sits, and how large."""
     name, view_box, body = read_mark(markup)
     presentation = MARK_PRESENTATION.get(name, DEFAULT_PRESENTATION)
-    body = drop_band(body, presentation["drop"])
-
     _, _, width, height = view_box
     scale = presentation["box"] / max(width, height)
-    focus_x, focus_y = presentation.get("focus") or (width / 2, height / 2)
-    tokens = {
+    return body, {
         "MARK_TRANSFORM": (
-            f"translate({fmt1(-focus_x * scale)},{fmt1(-focus_y * scale)}) "
-            f"scale({trim(scale, 5)})"
+            f"translate({fmt1(MARK_CENTRE_X - width * scale / 2)},"
+            f"{fmt1(MARK_CENTRE_Y - height * scale / 2)}) scale({trim(scale, 5)})"
         )
     }
-
-    breaks = presentation["breaks"]
-    circle = f'<circle r="{trim(MEDALLION_RADIUS, 1)}"/>'
-    if breaks is None:
-        tokens["MARK_CLIP"] = circle
-        return body, tokens, False
-
-    # The sector is the only place artwork may leave the medallion. Everything
-    # else is held at the ring however far the crest actually extends.
-    start, end = breaks
-    corners = [(0.0, 0.0)] + [
-        polar(start + (end - start) * step / 16, MARK_CLIP_REACH) for step in range(17)
-    ]
-    tokens["MARK_CLIP"] = circle + '<polygon points="%s"/>' % " ".join(
-        f"{fmt1(x)},{fmt1(y)}" for x, y in corners
-    )
-
-    # The ring is drawn once under the crest, then this arc redraws the part the
-    # crest may not cross. That is what makes the parts that do cross read as
-    # breaking out, rather than sitting behind the ring.
-    x0, y0 = polar(end, MEDALLION_RADIUS)
-    x1, y1 = polar(start, MEDALLION_RADIUS)
-    span = (start - end) % 360
-    tokens["RING_FRONT_D"] = (
-        f"M {fmt1(x0)} {fmt1(y0)} A {trim(MEDALLION_RADIUS, 1)} {trim(MEDALLION_RADIUS, 1)} "
-        f"0 {1 if span > 180 else 0} 1 {fmt1(x1)} {fmt1(y1)}"
-    )
-    tokens["RING_FRONT_LEN"] = fmt1(2 * math.pi * MEDALLION_RADIUS * span / 360)
-    return body, tokens, True
 
 
 def optional_block(template, name, keep):
@@ -431,14 +303,13 @@ def optional_block(template, name, keep):
     return re.sub(region, match.group(1) if keep else "", template, flags=re.DOTALL)
 
 
-def prepare_template(template, has_playoffs, ring_front):
-    """Resolve every optional region before any token is substituted.
+def prepare_template(template, has_playoffs):
+    """Resolve the optional region before any token is substituted.
 
-    These blocks live in the template so the design stays in one file; only the
+    The cards live in the template so the design stays in one file; only the
     decision to include them lives here.
     """
-    template = optional_block(template, "PLAYOFF_CARDS", has_playoffs)
-    return optional_block(template, "RING_FRONT", ring_front)
+    return optional_block(template, "PLAYOFF_CARDS", has_playoffs)
 
 
 def splice_mark(svg, body):
@@ -460,25 +331,6 @@ def count_cards(template):
     return len(numbers)
 
 
-TEAM_LINE_SIZE = 9.0        # the .team face at its design size
-TEAM_LINE_TRACKING = 2.0    # letter-spacing the class applies
-TEAM_LINE_HALF_WIDTH = 82.0  # centre at x=534, between the divider at 446 and the canvas edge
-
-
-def team_line_size(name):
-    """Font size that keeps the club name inside its column.
-
-    The club is read from the index now rather than typed by hand, so the name
-    changes on its own the day she is traded. At the design size the longest
-    names in the league ("Denver Glacier Guardians") run past the canvas edge and
-    would be clipped by the viewBox, so the line gives up a little size instead.
-    """
-    width = text_width(name, TEAM_LINE_SIZE, TEAM_LINE_TRACKING)
-    if width <= 2 * TEAM_LINE_HALF_WIDTH:
-        return TEAM_LINE_SIZE
-    return round1(TEAM_LINE_SIZE * (2 * TEAM_LINE_HALF_WIDTH) / width)
-
-
 def build_tokens(data, card_count):
     player = data["player"]
     team = data["team"]
@@ -497,10 +349,7 @@ def build_tokens(data, card_count):
         "HEIGHT": format_height(player["height"]),
         "WEIGHT": str(player["weight"]),
         "SHOOTS": player["handedness"].upper(),
-        "TEAM": team["name"].upper(),
-        "LEAGUE": player["currentLeague"].upper(),
         "SEASON": str(stats["season"]),
-        "TEAM_SIZE": trim(team_line_size(team["name"].upper()), 1),
     }
     tokens.update(bar_geometry(player["totalTPE"], player["appliedTPE"]))
     tokens.update(cycle_timings(card_count))
@@ -673,8 +522,8 @@ def validate(svg, template, body):
 def build(template, data, mark_markup):
     """Render and validate. Raises BuildError rather than returning bad markup."""
     has_playoffs = "playoffs" in data["stats"]
-    body, mark_tokens, ring_front = mark_geometry(mark_markup)
-    prepared = prepare_template(template, has_playoffs, ring_front)
+    body, mark_tokens = mark_geometry(mark_markup)
+    prepared = prepare_template(template, has_playoffs)
 
     card_count = count_cards(prepared)
     expected = REGULAR_CARDS + (PLAYOFF_CARDS if has_playoffs else 0)
