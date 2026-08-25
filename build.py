@@ -470,26 +470,6 @@ def team_line_size(name):
     return round1(TEAM_LINE_SIZE * (2 * TEAM_LINE_HALF_WIDTH) / width)
 
 
-def stats_source(player, team, stats):
-    """The season line under the medallion.
-
-    Normally just the season, because the club and league are already named on
-    the two lines above it. When the numbers were earned somewhere else it says
-    so, which is the whole window between a call-up and a first game in the new
-    league: the crest is her new club, the numbers are her old one, and the
-    signature would otherwise quietly imply she put up 66 games for a team she
-    has yet to play for.
-    """
-    season = f"S{stats['season']}"
-    earned_elsewhere = (
-        stats["league"] != player["currentLeague"]
-        or stats["team"].upper() != team["abbreviation"].upper()
-    )
-    if not earned_elsewhere:
-        return season
-    return f"{season}  ·  {stats['league'].upper()} {stats['team'].upper()}"
-
-
 def build_tokens(data, card_count):
     player = data["player"]
     team = data["team"]
@@ -511,7 +491,6 @@ def build_tokens(data, card_count):
         "TEAM": team["name"].upper(),
         "LEAGUE": player["currentLeague"].upper(),
         "SEASON": str(stats["season"]),
-        "STATS_SOURCE": stats_source(player, team, stats),
         "TEAM_SIZE": trim(team_line_size(team["name"].upper()), 1),
     }
     tokens.update(bar_geometry(player["totalTPE"], player["appliedTPE"]))
@@ -653,7 +632,6 @@ def validate(svg, template, body):
     errors.extend(check_bar_widths(svg))
 
     for required, label in (
-        ("@media (prefers-color-scheme: light)", "light theme block"),
         ("@media (prefers-reduced-motion: reduce)", "reduced motion block"),
         ("@keyframes fillTotal", "fillTotal keyframes"),
         ("@keyframes fillApp", "fillApp keyframes"),

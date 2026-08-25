@@ -365,7 +365,6 @@ class ValidationTests(unittest.TestCase):
 
     def test_theme_and_motion_blocks_survive(self):
         for required in (
-            "@media (prefers-color-scheme: light)",
             "@media (prefers-reduced-motion: reduce)",
             "@keyframes fillTotal",
             "@keyframes fillApp",
@@ -375,10 +374,19 @@ class ValidationTests(unittest.TestCase):
         ):
             self.assertIn(required, self.svg)
 
-    def test_catches_a_lost_light_theme_block(self):
-        broken = self.svg.replace("@media (prefers-color-scheme: light)", "@media print")
-        errors = build.validate(broken, self.template, self.body)
-        self.assertTrue(any("light theme" in e for e in errors), errors)
+    def test_the_palette_does_not_follow_the_reader(self):
+        """Fixed dark on purpose, not an oversight.
+
+        prefers-color-scheme reports the reader's OS, never the theme of the
+        page the signature is posted on, and an SVG embedded through [img] can
+        never learn the latter: it renders isolated, so page CSS does not
+        inherit in, scripts do not run, and blend modes composite against the
+        SVG's own canvas. Auto-switching therefore made one signature look
+        different to every reader while still not matching the forum.
+        """
+        self.assertNotIn("@media (prefers-color-scheme", self.svg)
+        self.assertIn("--accent:#0ad2d2", self.svg)
+        self.assertNotIn("--accent:#057070", self.svg)  # the retired light accent
 
     def test_catches_a_lost_reduced_motion_block(self):
         broken = self.svg.replace("@media (prefers-reduced-motion: reduce)", "@media print")
@@ -434,7 +442,7 @@ class ValidationTests(unittest.TestCase):
         self.assertTrue(any("past the" in e for e in errors), errors)
 
     def test_build_raises_rather_than_returning_bad_markup(self):
-        gutted = self.template.replace("@media (prefers-color-scheme: light)", "@media print")
+        gutted = self.template.replace("@media (prefers-reduced-motion: reduce)", "@media print")
         with self.assertRaises(build.BuildError):
             build.build(gutted, load_data(), load_mark())
 
@@ -762,29 +770,6 @@ class ClubMarkTests(unittest.TestCase):
     def test_an_eaten_crest_is_caught(self):
         body = load_body()
         self.assertTrue(build.check_logo("<svg></svg>", body))
-
-
-class StatsSourceTests(unittest.TestCase):
-    """The line that stops the signature implying she played for a club she has not."""
-
-    def line(self, current_league, abbreviation, stats_league, stats_team):
-        return build.stats_source(
-            {"currentLeague": current_league},
-            {"abbreviation": abbreviation},
-            {"season": 89, "league": stats_league, "team": stats_team},
-        )
-
-    def test_says_only_the_season_when_they_match(self):
-        self.assertEqual(self.line("SMJHL", "DET", "SMJHL", "DET"), "S89")
-
-    def test_names_the_source_after_a_call_up(self):
-        line = self.line("SHL", "TBB", "SMJHL", "DET")
-        self.assertIn("SMJHL", line)
-        self.assertIn("DET", line)
-        self.assertIn("S89", line)
-
-    def test_a_mid_season_trade_inside_one_league_still_shows(self):
-        self.assertIn("ANC", self.line("SMJHL", "DET", "SMJHL", "ANC"))
 
 
 class TeamLineTests(unittest.TestCase):
