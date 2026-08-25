@@ -730,14 +730,31 @@ class ClubMarkTests(unittest.TestCase):
         expected = 2 * 3.141592653589793 * build.MEDALLION_RADIUS * ((start - end) % 360) / 360
         self.assertAlmostEqual(float(tokens["RING_FRONT_LEN"]), expected, places=1)
 
-    def test_the_mark_is_centred_on_the_medallion(self):
-        _, tokens, _ = build.mark_geometry(load_mark())
+    def placement(self, markup):
+        _, tokens, _ = build.mark_geometry(markup)
         match = re.search(r"translate\(([-\d.]+),([-\d.]+)\) scale\(([\d.]+)\)",
                           tokens["MARK_TRANSFORM"])
-        dx, dy, scale = (float(g) for g in match.groups())
-        _, view_box, _ = build.read_mark(load_mark())
+        return (float(g) for g in match.groups())
+
+    def test_an_unfocused_mark_centres_on_its_viewbox(self):
+        dx, dy, scale = self.placement(STUB_MARK)
+        _, view_box, _ = build.read_mark(STUB_MARK)
         self.assertAlmostEqual(dx, -view_box[2] * scale / 2, places=1)
         self.assertAlmostEqual(dy, -view_box[3] * scale / 2, places=1)
+
+    def test_a_focal_point_overrides_the_viewbox_centre(self):
+        """Tampa Bay centres on the fish, not on the box.
+
+        With the wordmark dropped the artwork's middle falls well below the
+        fish, because the triangle keeps running past it, so centring on the
+        box would leave the fish riding high in the medallion.
+        """
+        dx, dy, scale = self.placement(load_mark())
+        focus_x, focus_y = build.MARK_PRESENTATION["Tampa_Bay"]["focus"]
+        self.assertAlmostEqual(dx, -focus_x * scale, places=1)
+        self.assertAlmostEqual(dy, -focus_y * scale, places=1)
+        _, view_box, _ = build.read_mark(load_mark())
+        self.assertLess(focus_y, view_box[3] / 2, "the focus should sit above the box centre")
 
     def test_the_wedge_clears_everything_the_crest_breaks_through(self):
         """Guards a bug that shipped once: bounds taken from path coordinates.
@@ -746,8 +763,8 @@ class ClubMarkTests(unittest.TestCase):
         more arc than its corner points do, so a wedge cut to the vertices takes
         a notch out of the spike, which is exactly what happened.
         """
-        passes = [(24.0, 57.8), (69.7, 79.1), (90.8, 106.0)]  # spike, jaw edge, snout
-        held = [(143.9, 160.0), (278.7, 298.4)]               # the two triangle corners
+        passes = [(42.5, 62.2), (87.3, 91.6), (103.8, 123.0)]  # spike, jaw edge, snout
+        held = [(139.4, 175.6), (263.2, 279.3)]                # the two triangle corners
         start, end = build.MARK_PRESENTATION["Tampa_Bay"]["breaks"]
         for low, high in passes:
             self.assertLessEqual(start, low, f"wedge clips the start of {low}-{high}")
@@ -756,7 +773,7 @@ class ClubMarkTests(unittest.TestCase):
             self.assertFalse(end >= low and start <= high, f"wedge frees {low}-{high}")
 
     def test_the_wedge_reaches_past_everything_it_passes(self):
-        self.assertGreater(build.MARK_CLIP_REACH, 61.3)  # furthest the spike travels
+        self.assertGreater(build.MARK_CLIP_REACH, 61.8)  # furthest any artwork travels
 
     def test_a_missing_marker_is_caught(self):
         with self.assertRaises(build.BuildError):

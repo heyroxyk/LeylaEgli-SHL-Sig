@@ -83,11 +83,11 @@
 <rect class="panel" x="0" y="0" width="620" height="152"/>
 
 <!-- COLUMN 1: identity -->
-<text class="num"  x="24" y="82">{{NUMBER}}</text>
-<text class="nm"   x="26" y="111">{{NAME}}</text>
-<text class="pos"  x="27" y="125">{{POSITION}}</text>
-<text class="meta" x="27" y="139">{{BIRTHPLACE}}  ·  {{DRAFT_CLASS}} DRAFT</text>
-<text class="meta" x="27" y="149">{{HEIGHT}}  ·  {{WEIGHT}} LBS  ·  SHOOTS {{SHOOTS}}</text>
+<text class="num"  x="24" y="77">{{NUMBER}}</text>
+<text class="nm"   x="26" y="106">{{NAME}}</text>
+<text class="pos"  x="27" y="120">{{POSITION}}</text>
+<text class="meta" x="27" y="134">{{BIRTHPLACE}}  ·  {{DRAFT_CLASS}} DRAFT</text>
+<text class="meta" x="27" y="144">{{HEIGHT}}  ·  {{WEIGHT}} LBS  ·  SHOOTS {{SHOOTS}}</text>
 
 <line stroke="var(--rule)" x1="236" y1="26" x2="236" y2="134"/>
 
@@ -155,12 +155,12 @@
   </path>
 <!--RING_FRONT_END-->
 </g>
-<!-- Club and league only. The season sits on the rail with the numbers it
-     describes, and where those numbers were earned is deliberately not shown:
-     data.json still records stats.league and stats.team, so a future treatment
-     can surface it without another API change. -->
-<text class="team" x="534" y="126" text-anchor="middle" style="font-size:{{TEAM_SIZE}}px">{{TEAM}}</text>
-<text class="ax"   x="534" y="139" text-anchor="middle">{{LEAGUE}}</text>
+<!-- The club, and nothing else. Its league is left to the crest and to the
+     aria-label; the season sits on the rail with the numbers it describes; and
+     where those numbers were earned is deliberately unstated. data.json still
+     records stats.league and stats.team, so any of it can be surfaced again
+     without another API change. -->
+<text class="team" x="534" y="134" text-anchor="middle" style="font-size:{{TEAM_SIZE}}px">{{TEAM}}</text>
 
 <!-- THE DIVIDER IS THE BAR. Full 620 width = 2000 TPE.
      The dividers at 155/310/465 cut it into four 500-TPE segments. They are
@@ -183,10 +183,13 @@
      ink above the baseline, 0.73 of the font size, measured rather than taken
      from a metrics table because the S overshoots its cap height. The clip
      stays as a backstop, since a machine without Arial Narrow falls back to a
-     face with different proportions. -->
+     face with different proportions.
+     Anchored at 620.9 rather than 620: the anchor positions the advance width,
+     and this face insets its ink from that by 0.02em, so the extra 0.9px is
+     what actually lands the right edge of the 9 on the edge of the canvas. -->
 <rect class="rail" x="0" y="168" width="620" height="32"/>
 <clipPath id="rail"><rect x="0" y="168" width="620" height="32"/></clipPath>
-<text class="ghost" clip-path="url(#rail)" x="613" y="200" text-anchor="end">S{{SEASON}}</text>
+<text class="ghost" clip-path="url(#rail)" x="620.9" y="200" text-anchor="end">S{{SEASON}}</text>
 
 <g class="card c1">
   <text class="lbl" x="24"  y="180">GP</text><text class="val" x="24"  y="195">{{ST_GP}}</text>
