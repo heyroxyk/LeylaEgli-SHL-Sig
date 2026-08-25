@@ -31,37 +31,38 @@
   },
   "player": {
     "appliedTPE": 425,
-    "bankedTPE": 394,
+    "bankedTPE": 401,
     "birthplace": "Zug, Switzerland",
-    "currentLeague": "SMJHL",
-    "currentTeamID": 7,
+    "currentLeague": "SHL",
+    "currentTeamID": 6,
     "draftSeason": 87,
     "handedness": "Right",
     "height": "6ft 1in",
     "jerseyNumber": 76,
     "name": "Leyla Egli",
     "position": "Right Defense",
-    "totalTPE": 819,
+    "totalTPE": 826,
     "weight": 178
   },
   "stats": {
+    "league": "SMJHL",
     "playoffs": {
       "assists": 5,
-      "gamesPlayed": 8,
-      "giveaways": 3,
+      "gamesPlayed": 10,
+      "giveaways": 4,
       "goals": 3,
-      "hits": 24,
+      "hits": 30,
       "pim": 6,
-      "plusMinus": 7,
+      "plusMinus": 2,
       "points": 8,
       "ppPoints": 2,
-      "ppTimeOnIce": 1095,
+      "ppTimeOnIce": 1418,
       "shPoints": 0,
-      "shTimeOnIce": 685,
-      "shotsBlocked": 15,
-      "shotsOnGoal": 16,
-      "takeaways": 11,
-      "timeOnIce": 12183
+      "shTimeOnIce": 811,
+      "shotsBlocked": 17,
+      "shotsOnGoal": 23,
+      "takeaways": 12,
+      "timeOnIce": 14905
     },
     "regular": {
       "advanced": {
@@ -90,10 +91,11 @@
       "takeaways": 81,
       "timeOnIce": 96107
     },
-    "season": 89
+    "season": 89,
+    "team": "DET"
   },
   "team": {
-    "abbreviation": "DET",
-    "name": "Detroit Falcons"
+    "abbreviation": "TBB",
+    "name": "Tampa Bay Barracuda"
   }
 }

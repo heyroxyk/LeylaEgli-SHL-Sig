@@ -31,15 +31,18 @@ jobs:
       - name: Fetch current figures
         run: python fetch.py
 
+      # logo.svg is watched too: a trade changes the crest, and while it also
+      # changes data.json, nothing should depend on those two moving together.
       - name: Check whether anything moved
         id: diff
         run: |
-          if git diff --quiet -- data.json; then
+          if git diff --quiet -- data.json logo.svg; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No change since the last run. Leaving the signature alone."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
             git --no-pager diff --unified=0 -- data.json
+            git --no-pager diff --stat -- logo.svg
           fi
 
       # build.py validates the rendered markup and refuses to write on any
@@ -60,6 +63,6 @@ jobs:
           total=$(python -c "import json; print(json.load(open('data.json'))['player']['totalTPE'])")
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.json leyla.svg
+          git add data.json logo.svg leyla.svg
           git commit -m "chore: refresh signature (${total} TPE)"
           git push
