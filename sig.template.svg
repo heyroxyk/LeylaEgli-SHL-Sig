@@ -1,20 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="620" height="200" viewBox="0 0 620 200" role="img" aria-label="{{ARIA_LABEL}}">
 <style>
-  /* Two club colours. --accent is the Barracuda cyan and carries everything
-     structural; --accent2 is the pink and is used only for banked TPE.
-     A bright accent inverts between themes, so anything drawn ON the accent
-     has to invert with it: white on the light theme's dark teal reads at 5.9,
-     but on the dark theme's bright cyan it reads at 1.9 and vanishes. That is
-     what --onAccent exists for. */
+  /* One fixed palette, deliberately. This used to carry a
+     prefers-color-scheme block, but that media query reports the READER'S OS
+     setting, not the theme of the page the signature is posted on, and an SVG
+     embedded through [img] can never learn the latter: it renders as an
+     isolated document, so page CSS does not inherit into it, scripts do not
+     run, and blend modes composite against the SVG's own canvas rather than
+     the page behind it. That isolation is a privacy property, not an
+     oversight, so it will not change.
+     Auto-switching therefore made one signature look different to every
+     reader while still not matching the forum. A fixed palette is the same for
+     everyone, and dark is the one the club colours were chosen against.
+
+     --accent is the Barracuda cyan and carries everything structural;
+     --accent2 is the pink, used only for banked TPE. --onAccent is for text
+     riding the solid accent fill, where white would read 1.9 and vanish. */
   :root{
     --bg:#12161c; --panel:#161c24; --rail:#0b0e13; --rule:#28313e; --grid:#222b37; --well:#0b0e13;
     --ink:#eef2f7; --muted:#78849a; --accent:#0ad2d2; --accent2:#f499c2; --onAccent:#0b0e13;
-  }
-  @media (prefers-color-scheme: light){
-    :root{
-      --bg:#eef1f5; --panel:#e3e7ee; --rail:#d4dae3; --rule:#bcc6d3; --grid:#cbd3dd; --well:#1c232d;
-      --ink:#0f141b; --muted:#5b6675; --accent:#057070; --accent2:#b03c70; --onAccent:#ffffff;
-    }
   }
   .bg{fill:var(--bg)} .panel{fill:var(--panel)} .rail{fill:var(--rail)}
   .num{fill:var(--ink); font:700 84px/1 "Arial Narrow","Haettenschweiler",Impact,sans-serif; letter-spacing:-3px}

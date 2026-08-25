@@ -653,7 +653,6 @@ def validate(svg, template, body):
     errors.extend(check_bar_widths(svg))
 
     for required, label in (
-        ("@media (prefers-color-scheme: light)", "light theme block"),
         ("@media (prefers-reduced-motion: reduce)", "reduced motion block"),
         ("@keyframes fillTotal", "fillTotal keyframes"),
         ("@keyframes fillApp", "fillApp keyframes"),
