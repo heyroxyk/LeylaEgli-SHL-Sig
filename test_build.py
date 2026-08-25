@@ -270,7 +270,7 @@ class PlayoffCardTests(unittest.TestCase):
 
     def test_rejects_a_template_with_no_playoff_block(self):
         with self.assertRaises(build.BuildError):
-            build.prepare_template("<svg></svg>", True, False)
+            build.prepare_template("<svg></svg>", True)
 
     def test_rejects_a_gap_in_the_card_numbering(self):
         with self.assertRaises(build.BuildError):
@@ -334,7 +334,7 @@ class ThreePlacesTests(unittest.TestCase):
 
 class ValidationTests(unittest.TestCase):
     def setUp(self):
-        self.template = build.prepare_template(load_template(), True, True)
+        self.template = build.prepare_template(load_template(), True)
         self.body = load_body()
         self.svg = render_current()
 
@@ -661,7 +661,7 @@ class FetchShapeTests(unittest.TestCase):
 
 
 class ClubMarkTests(unittest.TestCase):
-    """The crest is fetched markup now, so the build has to reason about it."""
+    """The crest is fetched markup, so the build has to reason about it."""
 
     def test_reads_the_viewbox_and_body(self):
         name, view_box, body = build.read_mark(STUB_MARK)
@@ -679,128 +679,52 @@ class ClubMarkTests(unittest.TestCase):
         with self.assertRaises(build.BuildError):
             build.read_mark("not markup at all")
 
-    def test_drops_only_paths_wholly_inside_the_band(self):
-        _, _, body = build.read_mark(STUB_MARK)
-        trimmed = build.drop_band(body, (65.0, 95.0))
-        self.assertEqual(trimmed.count("<path"), 2)   # the lettering band went
-        self.assertIn("#0bd3d3", trimmed)             # the full-height shape stayed
-
-    def test_a_straddling_path_survives(self):
-        """Backing shapes run the height of a mark and must not be bitten into."""
-        _, _, body = build.read_mark(STUB_MARK)
-        self.assertEqual(build.drop_band(body, (50.0, 95.0)).count("<path"), 2)
-
-    def test_a_band_that_matches_nothing_is_an_error(self):
-        """Silently dropping nothing would ship a wordmark we meant to remove."""
-        _, _, body = build.read_mark(STUB_MARK)
-        with self.assertRaises(build.BuildError) as caught:
-            build.drop_band(body, (200.0, 300.0))
-        self.assertIn("changed shape", str(caught.exception))
-
-    def test_no_band_leaves_the_body_alone(self):
-        _, _, body = build.read_mark(STUB_MARK)
-        self.assertEqual(build.drop_band(body, None), body)
-
-    def test_packed_path_numbers_parse(self):
-        """"758.629.943-3.8" is three numbers; splitting on whitespace loses two."""
-        self.assertEqual(build.path_y_range("M 10 758.629.943-3.8"), (-3.8, 758.629))
-
-    def test_an_unlisted_club_gets_the_plain_treatment(self):
-        body, tokens, ring_front = build.mark_geometry(STUB_MARK)
-        self.assertFalse(ring_front)
-        self.assertNotIn("RING_FRONT_D", tokens)
-        self.assertNotIn("polygon", tokens["MARK_CLIP"])
-
-    def test_tampa_bay_breaks_the_ring(self):
-        body, tokens, ring_front = build.mark_geometry(load_mark())
-        self.assertTrue(ring_front)
-        self.assertIn("polygon", tokens["MARK_CLIP"])
-        self.assertTrue(tokens["RING_FRONT_D"].startswith("M "))
-        self.assertGreater(float(tokens["RING_FRONT_LEN"]), 0.0)
-
-    def test_the_wordmark_is_gone_from_the_signature(self):
-        """Its lettering repeats the club name printed under the medallion."""
-        full = build.read_mark(load_mark())[2]
-        body = build.mark_geometry(load_mark())[0]
-        self.assertLess(body.count("<path"), full.count("<path"))
-
-    def test_the_front_arc_spans_the_ring_it_should(self):
-        _, tokens, _ = build.mark_geometry(load_mark())
-        start, end = build.MARK_PRESENTATION["Tampa_Bay"]["breaks"]
-        expected = 2 * 3.141592653589793 * build.MEDALLION_RADIUS * ((start - end) % 360) / 360
-        self.assertAlmostEqual(float(tokens["RING_FRONT_LEN"]), expected, places=1)
-
     def placement(self, markup):
-        _, tokens, _ = build.mark_geometry(markup)
+        _, tokens = build.mark_geometry(markup)
         match = re.search(r"translate\(([-\d.]+),([-\d.]+)\) scale\(([\d.]+)\)",
                           tokens["MARK_TRANSFORM"])
         return (float(g) for g in match.groups())
 
-    def test_an_unfocused_mark_centres_on_its_viewbox(self):
-        dx, dy, scale = self.placement(STUB_MARK)
-        _, view_box, _ = build.read_mark(STUB_MARK)
-        self.assertAlmostEqual(dx, -view_box[2] * scale / 2, places=1)
-        self.assertAlmostEqual(dy, -view_box[3] * scale / 2, places=1)
-
-    def test_a_focal_point_overrides_the_viewbox_centre(self):
-        """Tampa Bay centres on the fish, not on the box.
-
-        With the wordmark dropped the artwork's middle falls well below the
-        fish, because the triangle keeps running past it, so centring on the
-        box would leave the fish riding high in the medallion.
-        """
+    def test_the_mark_is_centred_in_its_column(self):
         dx, dy, scale = self.placement(load_mark())
-        focus_x, focus_y = build.MARK_PRESENTATION["Tampa_Bay"]["focus"]
-        self.assertAlmostEqual(dx, -focus_x * scale, places=1)
-        self.assertAlmostEqual(dy, -focus_y * scale, places=1)
         _, view_box, _ = build.read_mark(load_mark())
-        self.assertLess(focus_y, view_box[3] / 2, "the focus should sit above the box centre")
+        self.assertAlmostEqual(dx + view_box[2] * scale / 2, build.MARK_CENTRE_X, places=1)
+        self.assertAlmostEqual(dy + view_box[3] * scale / 2, build.MARK_CENTRE_Y, places=1)
 
-    def test_the_wedge_clears_everything_the_crest_breaks_through(self):
-        """Guards a bug that shipped once: bounds taken from path coordinates.
+    def test_the_mark_is_fitted_by_its_longer_side(self):
+        _, _, scale = self.placement(load_mark())
+        _, view_box, _ = build.read_mark(load_mark())
+        box = build.MARK_PRESENTATION["Tampa_Bay"]["box"]
+        self.assertAlmostEqual(max(view_box[2], view_box[3]) * scale, box, places=1)
 
-        These arcs were measured from the RENDERED crest. A filled shape covers
-        more arc than its corner points do, so a wedge cut to the vertices takes
-        a notch out of the spike, which is exactly what happened.
-        """
-        passes = [(42.5, 62.2), (87.3, 91.6), (103.8, 123.0)]  # spike, jaw edge, snout
-        held = [(139.4, 175.6), (263.2, 279.3)]                # the two triangle corners
-        start, end = build.MARK_PRESENTATION["Tampa_Bay"]["breaks"]
-        for low, high in passes:
-            self.assertLessEqual(start, low, f"wedge clips the start of {low}-{high}")
-            self.assertGreaterEqual(end, high, f"wedge clips the end of {low}-{high}")
-        for low, high in held:
-            self.assertFalse(end >= low and start <= high, f"wedge frees {low}-{high}")
+    def test_an_unlisted_club_falls_back_to_the_default_size(self):
+        _, _, scale = self.placement(STUB_MARK)
+        self.assertAlmostEqual(100.0 * scale, build.DEFAULT_PRESENTATION["box"], places=1)
 
-    def test_the_wedge_reaches_past_everything_it_passes(self):
-        self.assertGreater(build.MARK_CLIP_REACH, 61.8)  # furthest any artwork travels
+    def test_the_whole_lockup_reaches_the_output(self):
+        """Nothing is trimmed now: the wordmark IS the club name on the card."""
+        svg = render_current()
+        body = load_body()
+        self.assertEqual(build.check_logo(svg, body), [])
+        self.assertEqual(body.count("<path"), build.read_mark(load_mark())[2].count("<path"))
 
     def test_a_missing_marker_is_caught(self):
         with self.assertRaises(build.BuildError):
             build.splice_mark("<svg></svg>", "<path/>")
 
-    def test_the_crest_reaches_the_output(self):
-        svg = render_current()
-        body = load_body()
-        self.assertEqual(build.check_logo(svg, body), [])
-
     def test_an_eaten_crest_is_caught(self):
-        body = load_body()
-        self.assertTrue(build.check_logo("<svg></svg>", body))
+        self.assertTrue(build.check_logo("<svg></svg>", load_body()))
 
+    def test_the_card_does_not_repeat_the_club_name(self):
+        """The lockup carries its own wordmark; a text copy said it twice."""
+        svg = render_current()
+        self.assertNotIn('class="team"', svg)
 
-class TeamLineTests(unittest.TestCase):
-    """The club name is read from the index now, so its length is not ours to pick."""
-
-    def test_a_normal_name_keeps_the_design_size(self):
-        self.assertEqual(build.team_line_size("TAMPA BAY BARRACUDA"), build.TEAM_LINE_SIZE)
-
-    def test_the_longest_club_in_the_league_is_shrunk_to_fit(self):
-        name = "DENVER GLACIER GUARDIANS"
-        size = build.team_line_size(name)
-        self.assertLess(size, build.TEAM_LINE_SIZE)
-        width = build.text_width(name, size, build.TEAM_LINE_TRACKING)
-        self.assertLessEqual(534 + width / 2, build.CANVAS_WIDTH)
+    def test_the_club_is_still_in_the_accessible_name(self):
+        svg = render_current()
+        label = re.search(r'aria-label="([^"]*)"', svg).group(1)
+        self.assertIn(load_data()["team"]["name"], label)
+        self.assertIn(load_data()["player"]["currentLeague"], label)
 
 
 class DataFileTests(unittest.TestCase):
