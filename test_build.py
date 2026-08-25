@@ -44,8 +44,29 @@ def load_data():
     return json.loads((HERE / "data.json").read_text(encoding="utf-8"))
 
 
+def load_mark():
+    return (HERE / "logo.svg").read_text(encoding="utf-8")
+
+
+def load_body():
+    """The crest body as validate() sees it: fetched, trimmed, ready to splice."""
+    return build.mark_geometry(load_mark())[0]
+
+
 def render_current():
-    return build.build(load_template(), load_data())
+    return build.build(load_template(), load_data(), load_mark())
+
+
+# A crest small enough to read in a failure message, shaped like the real ones:
+# a nested <svg> with its own viewBox, fills carried in style attributes, and a
+# band of lettering that presentation rules are expected to drop.
+STUB_MARK = (
+    '<svg viewBox="0 0 100 100" id="Stub_Club" xmlns="http://www.w3.org/2000/svg">'
+    '<path style="fill:#0bd3d3" d="M10 5 L90 5 L90 60 L10 60 Z"/>'
+    '<path style="fill:#f499c2" d="M20 20 C30 10 70 10 80 20 L80 40 L20 40 Z"/>'
+    '<path style="fill:#fff" d="M15 70 L85 70 L85 88 L15 88 Z"/>'
+    "</svg>"
+)
 
 
 class RoundingTests(unittest.TestCase):
@@ -207,6 +228,7 @@ class PlayoffCardTests(unittest.TestCase):
     def setUp(self):
         self.template = load_template()
         self.data = load_data()
+        self.mark = load_mark()
 
     def without_playoffs(self):
         stats = {k: v for k, v in self.data["stats"].items() if k != "playoffs"}
@@ -216,21 +238,21 @@ class PlayoffCardTests(unittest.TestCase):
         self.assertIn("playoffs", self.data["stats"])
 
     def test_playoff_run_adds_four_cards(self):
-        svg = build.build(self.template, self.data)
+        svg = build.build(self.template, self.data, self.mark)
         self.assertEqual(build.count_cards(svg), 10)
         self.assertIn("PO GP", svg)
         self.assertIn("animation: cycle 35s", svg)
 
     def test_no_playoff_run_leaves_six_cards(self):
-        svg = build.build(self.template, self.without_playoffs())
+        svg = build.build(self.template, self.without_playoffs(), self.mark)
         self.assertEqual(build.count_cards(svg), 6)
         self.assertNotIn("PO GP", svg)
         self.assertIn("animation: cycle 21s", svg)
 
     def test_regular_season_cards_are_identical_either_way(self):
         """Adding the playoff block must not disturb the six cards already there."""
-        with_po = build.build(self.template, self.data)
-        without = build.build(self.template, self.without_playoffs())
+        with_po = build.build(self.template, self.data, self.mark)
+        without = build.build(self.template, self.without_playoffs(), self.mark)
         pattern = r'<g class="card c[1-6]">.*?</g>'
         self.assertEqual(
             re.findall(pattern, with_po, re.DOTALL), re.findall(pattern, without, re.DOTALL)
@@ -238,17 +260,17 @@ class PlayoffCardTests(unittest.TestCase):
 
     def test_possession_and_rate_metrics_stay_regular_season_only(self):
         """PDO over four games is luck, not talent. It must never appear as a PO card."""
-        svg = build.build(self.template, self.data)
+        svg = build.build(self.template, self.data, self.mark)
         for metric in ("PO PDO", "PO CF%", "PO FF%", "PO GF/60", "PO SF/60"):
             self.assertNotIn(metric, svg)
 
     def test_build_markers_do_not_reach_the_output(self):
         for payload in (self.data, self.without_playoffs()):
-            self.assertNotIn("PLAYOFF_CARDS", build.build(self.template, payload))
+            self.assertNotIn("PLAYOFF_CARDS", build.build(self.template, payload, self.mark))
 
     def test_rejects_a_template_with_no_playoff_block(self):
         with self.assertRaises(build.BuildError):
-            build.prepare_template("<svg></svg>", True)
+            build.prepare_template("<svg></svg>", True, False)
 
     def test_rejects_a_gap_in_the_card_numbering(self):
         with self.assertRaises(build.BuildError):
@@ -256,57 +278,68 @@ class PlayoffCardTests(unittest.TestCase):
 
 
 class ThreePlacesTests(unittest.TestCase):
-    """Each bar width is written in three places. All three must agree."""
+    """Each bar width is written in three places. All three must agree.
+
+    Every expectation here is derived from data.json rather than written as a
+    literal. These numbers move whenever she earns TPE, and the workflow runs
+    this suite before it commits, so a pinned width would fail the nightly build
+    on the first point she gained.
+    """
 
     def setUp(self):
         self.svg = render_current()
+        player = load_data()["player"]
+        bar = build.bar_geometry(player["totalTPE"], player["appliedTPE"])
+        self.total = bar["TPE_TOTAL_PX"]
+        self.applied = bar["TPE_APPLIED_PX"]
 
     def test_total_width_agrees_across_all_three(self):
-        self.assertEqual(build._keyframe_width(self.svg, "fillTotal"), "253.9")
-        self.assertEqual(build._reduced_motion_width(self.svg, "tpeTotal"), "253.9")
-        self.assertEqual(build._rect_width(self.svg, "tpeTotal"), "253.9")
+        self.assertEqual(build._keyframe_width(self.svg, "fillTotal"), self.total)
+        self.assertEqual(build._reduced_motion_width(self.svg, "tpeTotal"), self.total)
+        self.assertEqual(build._rect_width(self.svg, "tpeTotal"), self.total)
 
     def test_applied_width_agrees_across_all_three(self):
-        self.assertEqual(build._keyframe_width(self.svg, "fillApp"), "131.8")
-        self.assertEqual(build._reduced_motion_width(self.svg, "tpeApp"), "131.8")
-        self.assertEqual(build._rect_width(self.svg, "tpeApp"), "131.8")
+        self.assertEqual(build._keyframe_width(self.svg, "fillApp"), self.applied)
+        self.assertEqual(build._reduced_motion_width(self.svg, "tpeApp"), self.applied)
+        self.assertEqual(build._rect_width(self.svg, "tpeApp"), self.applied)
 
     def test_clean_build_reports_no_disagreement(self):
         self.assertEqual(build.check_bar_widths(self.svg), [])
 
     def test_catches_a_stale_rect_attribute(self):
-        broken = self.svg.replace('class="tpeTotal" fill="var(--accent)" fill-opacity="0.42" x="0" y="152" width="253.9"',
-                                  'class="tpeTotal" fill="var(--accent)" fill-opacity="0.42" x="0" y="152" width="199.0"')
+        broken = self.svg.replace(f'y="152" width="{self.total}"', 'y="152" width="199.0"', 1)
         self.assertNotEqual(broken, self.svg, "mutation did not apply")
         errors = build.check_bar_widths(broken)
         self.assertTrue(any("tpeTotal" in e and "disagree" in e for e in errors), errors)
 
     def test_catches_a_stale_keyframe(self):
-        broken = self.svg.replace("to{width:253.9px}", "to{width:199.0px}")
+        broken = self.svg.replace(f"to{{width:{self.total}px}}", "to{width:199.0px}")
         self.assertNotEqual(broken, self.svg, "mutation did not apply")
         errors = build.check_bar_widths(broken)
         self.assertTrue(any("tpeTotal" in e and "disagree" in e for e in errors), errors)
 
     def test_catches_a_stale_reduced_motion_rule(self):
-        broken = self.svg.replace(".tpeApp{animation:none; width:131.8px}",
+        broken = self.svg.replace(f".tpeApp{{animation:none; width:{self.applied}px}}",
                                   ".tpeApp{animation:none; width:99.0px}")
         self.assertNotEqual(broken, self.svg, "mutation did not apply")
         errors = build.check_bar_widths(broken)
         self.assertTrue(any("tpeApp" in e and "disagree" in e for e in errors), errors)
 
     def test_catches_a_deleted_reduced_motion_rule(self):
-        broken = self.svg.replace(".tpeApp{animation:none; width:131.8px}", "")
+        broken = self.svg.replace(f".tpeApp{{animation:none; width:{self.applied}px}}", "")
+        self.assertNotEqual(broken, self.svg, "mutation did not apply")
         errors = build.check_bar_widths(broken)
         self.assertTrue(any("tpeApp" in e for e in errors), errors)
 
 
 class ValidationTests(unittest.TestCase):
     def setUp(self):
-        self.template = load_template()
+        self.template = build.prepare_template(load_template(), True, True)
+        self.body = load_body()
         self.svg = render_current()
 
     def test_a_clean_build_validates(self):
-        self.assertEqual(build.validate(self.svg, self.template), [])
+        self.assertEqual(build.validate(self.svg, self.template, self.body), [])
 
     def test_output_parses_as_xml(self):
         import xml.etree.ElementTree as ElementTree
@@ -314,7 +347,7 @@ class ValidationTests(unittest.TestCase):
 
     def test_catches_malformed_xml(self):
         broken = self.svg.replace("</svg>", "")
-        errors = build.validate(broken, self.template)
+        errors = build.validate(broken, self.template, self.body)
         self.assertTrue(any("well-formed XML" in e for e in errors), errors)
 
     def test_no_tokens_remain(self):
@@ -322,7 +355,7 @@ class ValidationTests(unittest.TestCase):
 
     def test_catches_a_leftover_token(self):
         broken = self.svg.replace("<rect class=\"rail\"", "{{FORGOTTEN}}<rect class=\"rail\"")
-        errors = build.validate(broken, self.template)
+        errors = build.validate(broken, self.template, self.body)
         self.assertTrue(any("unsubstituted tokens" in e for e in errors), errors)
 
     def test_render_refuses_a_token_nothing_supplies(self):
@@ -344,31 +377,32 @@ class ValidationTests(unittest.TestCase):
 
     def test_catches_a_lost_light_theme_block(self):
         broken = self.svg.replace("@media (prefers-color-scheme: light)", "@media print")
-        errors = build.validate(broken, self.template)
+        errors = build.validate(broken, self.template, self.body)
         self.assertTrue(any("light theme" in e for e in errors), errors)
 
     def test_catches_a_lost_reduced_motion_block(self):
         broken = self.svg.replace("@media (prefers-reduced-motion: reduce)", "@media print")
-        errors = build.validate(broken, self.template)
+        errors = build.validate(broken, self.template, self.body)
         self.assertTrue(any("reduced motion" in e for e in errors), errors)
 
     def test_logo_survives(self):
-        self.assertEqual(build.check_logo(self.svg), [])
+        self.assertEqual(build.check_logo(self.svg, self.body), [])
 
     def test_catches_an_eaten_logo(self):
         import re
         broken = re.sub(r'\sd="[^"]+"', ' d="M0,0"', self.svg)
-        errors = build.validate(broken, self.template)
+        errors = build.validate(broken, self.template, self.body)
         self.assertTrue(any("club mark was eaten" in e for e in errors), errors)
 
     def test_output_size_is_sane(self):
         size = len(self.svg.encode("utf-8"))
         self.assertGreater(size, build.MIN_OUTPUT_BYTES)
-        reference = len(self.template.encode("utf-8"))
+        # The crest lives in logo.svg now, so the yardstick is template plus mark.
+        reference = len(self.template.encode("utf-8")) + len(self.body.encode("utf-8"))
         self.assertLessEqual(abs(size - reference) / reference, build.SIZE_TOLERANCE)
 
     def test_catches_a_collapsed_output(self):
-        errors = build.validate("<svg></svg>", self.template)
+        errors = build.validate("<svg></svg>", self.template, self.body)
         self.assertTrue(any("below the" in e for e in errors), errors)
 
     def test_bar_is_cut_into_four_segments(self):
@@ -391,7 +425,10 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(build.check_labels_fit(self.svg), [])
 
     def test_catches_a_label_running_off_canvas(self):
-        broken = self.svg.replace('x="259.9" y="163">819 TPE<', 'x="600.0" y="163">819 TPE<')
+        total = load_data()["player"]["totalTPE"]
+        label = f'y="163">{total} TPE<'
+        broken = self.svg.replace(f'x="{build.fmt1(build.CANVAS_WIDTH * total / build.BAR_MAX_TPE + build.LABEL_PAD)}" {label}',
+                                  f'x="600.0" {label}')
         self.assertNotEqual(broken, self.svg, "mutation did not apply")
         errors = build.check_labels_fit(broken)
         self.assertTrue(any("past the" in e for e in errors), errors)
@@ -399,7 +436,7 @@ class ValidationTests(unittest.TestCase):
     def test_build_raises_rather_than_returning_bad_markup(self):
         gutted = self.template.replace("@media (prefers-color-scheme: light)", "@media print")
         with self.assertRaises(build.BuildError):
-            build.build(gutted, load_data())
+            build.build(gutted, load_data(), load_mark())
 
 
 class CommittedOutputTests(unittest.TestCase):
@@ -483,17 +520,34 @@ class FetchShapeTests(unittest.TestCase):
                 fetch.fetch_player()
         self.assertIn("ECHL", str(caught.exception))
 
-    def test_finds_the_index_id_for_the_current_league(self):
+    def test_prefers_the_current_league(self):
         player = self.player_payload()[0]
         player["indexRecords"] = [
             {"leagueID": 3, "indexID": 1407}, {"leagueID": 1, "indexID": 3192},
         ]
-        self.assertEqual(fetch.find_index_id(player, 1), 3192)
+        self.assertEqual(fetch.find_stats_source(player), ("SMJHL", 1, 3192))
 
-    def test_rejects_a_missing_index_record(self):
-        player = self.player_payload()[0]
-        with self.assertRaises(fetch.ShapeError):
-            fetch.find_index_id(player, 0)
+    def test_falls_back_when_the_new_league_has_no_record_yet(self):
+        """A call-up joins a club before the index knows she is in that league."""
+        player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
+        player["indexRecords"] = [
+            {"leagueID": 1, "indexID": 3192}, {"leagueID": 2, "indexID": 1579},
+        ]
+        self.assertEqual(fetch.find_stats_source(player), ("SMJHL", 1, 3192))
+
+    def test_the_new_league_wins_the_moment_it_has_a_record(self):
+        player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
+        player["indexRecords"] = [
+            {"leagueID": 1, "indexID": 3192}, {"leagueID": 0, "indexID": 4100},
+        ]
+        self.assertEqual(fetch.find_stats_source(player), ("SHL", 0, 4100))
+
+    def test_a_national_side_never_stands_in_for_a_club_season(self):
+        player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
+        player["indexRecords"] = [{"leagueID": 2, "indexID": 1579}]
+        with self.assertRaises(fetch.ShapeError) as caught:
+            fetch.find_stats_source(player)
+        self.assertIn("club league", str(caught.exception))
 
     def test_reads_the_single_team_endpoint(self):
         team = {"id": 7, "name": "Detroit Falcons", "abbreviation": "DET"}
@@ -509,7 +563,7 @@ class FetchShapeTests(unittest.TestCase):
 
     def stats_payload(self, **overrides):
         record = {
-            "season": 89, "gamesPlayed": 66, "goals": 11, "assists": 51, "points": 62,
+            "season": 89, "team": "DET", "gamesPlayed": 66, "goals": 11, "assists": 51, "points": 62,
             "plusMinus": 21, "pim": 50, "hits": 129, "shotsBlocked": 86, "takeaways": 81,
             "giveaways": 22, "shotsOnGoal": 157, "timeOnIce": 96107, "ppPoints": 19,
             "shPoints": 3, "ppTimeOnIce": 9313, "shTimeOnIce": 9151,
@@ -596,6 +650,155 @@ class FetchShapeTests(unittest.TestCase):
         ) as called:
             fetch.fetch_stats(3192, 1)
         self.assertNotIn("preseason", " ".join(call.args[0] for call in called.call_args_list))
+
+
+class ClubMarkTests(unittest.TestCase):
+    """The crest is fetched markup now, so the build has to reason about it."""
+
+    def test_reads_the_viewbox_and_body(self):
+        name, view_box, body = build.read_mark(STUB_MARK)
+        self.assertEqual(name, "Stub_Club")
+        self.assertEqual(view_box, [0.0, 0.0, 100.0, 100.0])
+        self.assertIn("<path", body)
+        self.assertNotIn("<svg", body)
+
+    def test_rejects_a_mark_without_a_viewbox(self):
+        with self.assertRaises(build.BuildError) as caught:
+            build.read_mark('<svg id="X"><path d="M0 0 L1 1"/></svg>')
+        self.assertIn("viewBox", str(caught.exception))
+
+    def test_rejects_markup_that_is_not_an_svg(self):
+        with self.assertRaises(build.BuildError):
+            build.read_mark("not markup at all")
+
+    def test_drops_only_paths_wholly_inside_the_band(self):
+        _, _, body = build.read_mark(STUB_MARK)
+        trimmed = build.drop_band(body, (65.0, 95.0))
+        self.assertEqual(trimmed.count("<path"), 2)   # the lettering band went
+        self.assertIn("#0bd3d3", trimmed)             # the full-height shape stayed
+
+    def test_a_straddling_path_survives(self):
+        """Backing shapes run the height of a mark and must not be bitten into."""
+        _, _, body = build.read_mark(STUB_MARK)
+        self.assertEqual(build.drop_band(body, (50.0, 95.0)).count("<path"), 2)
+
+    def test_a_band_that_matches_nothing_is_an_error(self):
+        """Silently dropping nothing would ship a wordmark we meant to remove."""
+        _, _, body = build.read_mark(STUB_MARK)
+        with self.assertRaises(build.BuildError) as caught:
+            build.drop_band(body, (200.0, 300.0))
+        self.assertIn("changed shape", str(caught.exception))
+
+    def test_no_band_leaves_the_body_alone(self):
+        _, _, body = build.read_mark(STUB_MARK)
+        self.assertEqual(build.drop_band(body, None), body)
+
+    def test_packed_path_numbers_parse(self):
+        """"758.629.943-3.8" is three numbers; splitting on whitespace loses two."""
+        self.assertEqual(build.path_y_range("M 10 758.629.943-3.8"), (-3.8, 758.629))
+
+    def test_an_unlisted_club_gets_the_plain_treatment(self):
+        body, tokens, ring_front = build.mark_geometry(STUB_MARK)
+        self.assertFalse(ring_front)
+        self.assertNotIn("RING_FRONT_D", tokens)
+        self.assertNotIn("polygon", tokens["MARK_CLIP"])
+
+    def test_tampa_bay_breaks_the_ring(self):
+        body, tokens, ring_front = build.mark_geometry(load_mark())
+        self.assertTrue(ring_front)
+        self.assertIn("polygon", tokens["MARK_CLIP"])
+        self.assertTrue(tokens["RING_FRONT_D"].startswith("M "))
+        self.assertGreater(float(tokens["RING_FRONT_LEN"]), 0.0)
+
+    def test_the_wordmark_is_gone_from_the_signature(self):
+        """Its lettering repeats the club name printed under the medallion."""
+        full = build.read_mark(load_mark())[2]
+        body = build.mark_geometry(load_mark())[0]
+        self.assertLess(body.count("<path"), full.count("<path"))
+
+    def test_the_front_arc_spans_the_ring_it_should(self):
+        _, tokens, _ = build.mark_geometry(load_mark())
+        start, end = build.MARK_PRESENTATION["Tampa_Bay"]["breaks"]
+        expected = 2 * 3.141592653589793 * build.MEDALLION_RADIUS * ((start - end) % 360) / 360
+        self.assertAlmostEqual(float(tokens["RING_FRONT_LEN"]), expected, places=1)
+
+    def test_the_mark_is_centred_on_the_medallion(self):
+        _, tokens, _ = build.mark_geometry(load_mark())
+        match = re.search(r"translate\(([-\d.]+),([-\d.]+)\) scale\(([\d.]+)\)",
+                          tokens["MARK_TRANSFORM"])
+        dx, dy, scale = (float(g) for g in match.groups())
+        _, view_box, _ = build.read_mark(load_mark())
+        self.assertAlmostEqual(dx, -view_box[2] * scale / 2, places=1)
+        self.assertAlmostEqual(dy, -view_box[3] * scale / 2, places=1)
+
+    def test_the_wedge_clears_everything_the_crest_breaks_through(self):
+        """Guards a bug that shipped once: bounds taken from path coordinates.
+
+        These arcs were measured from the RENDERED crest. A filled shape covers
+        more arc than its corner points do, so a wedge cut to the vertices takes
+        a notch out of the spike, which is exactly what happened.
+        """
+        passes = [(24.0, 57.8), (69.7, 79.1), (90.8, 106.0)]  # spike, jaw edge, snout
+        held = [(143.9, 160.0), (278.7, 298.4)]               # the two triangle corners
+        start, end = build.MARK_PRESENTATION["Tampa_Bay"]["breaks"]
+        for low, high in passes:
+            self.assertLessEqual(start, low, f"wedge clips the start of {low}-{high}")
+            self.assertGreaterEqual(end, high, f"wedge clips the end of {low}-{high}")
+        for low, high in held:
+            self.assertFalse(end >= low and start <= high, f"wedge frees {low}-{high}")
+
+    def test_the_wedge_reaches_past_everything_it_passes(self):
+        self.assertGreater(build.MARK_CLIP_REACH, 61.3)  # furthest the spike travels
+
+    def test_a_missing_marker_is_caught(self):
+        with self.assertRaises(build.BuildError):
+            build.splice_mark("<svg></svg>", "<path/>")
+
+    def test_the_crest_reaches_the_output(self):
+        svg = render_current()
+        body = load_body()
+        self.assertEqual(build.check_logo(svg, body), [])
+
+    def test_an_eaten_crest_is_caught(self):
+        body = load_body()
+        self.assertTrue(build.check_logo("<svg></svg>", body))
+
+
+class StatsSourceTests(unittest.TestCase):
+    """The line that stops the signature implying she played for a club she has not."""
+
+    def line(self, current_league, abbreviation, stats_league, stats_team):
+        return build.stats_source(
+            {"currentLeague": current_league},
+            {"abbreviation": abbreviation},
+            {"season": 89, "league": stats_league, "team": stats_team},
+        )
+
+    def test_says_only_the_season_when_they_match(self):
+        self.assertEqual(self.line("SMJHL", "DET", "SMJHL", "DET"), "S89")
+
+    def test_names_the_source_after_a_call_up(self):
+        line = self.line("SHL", "TBB", "SMJHL", "DET")
+        self.assertIn("SMJHL", line)
+        self.assertIn("DET", line)
+        self.assertIn("S89", line)
+
+    def test_a_mid_season_trade_inside_one_league_still_shows(self):
+        self.assertIn("ANC", self.line("SMJHL", "DET", "SMJHL", "ANC"))
+
+
+class TeamLineTests(unittest.TestCase):
+    """The club name is read from the index now, so its length is not ours to pick."""
+
+    def test_a_normal_name_keeps_the_design_size(self):
+        self.assertEqual(build.team_line_size("TAMPA BAY BARRACUDA"), build.TEAM_LINE_SIZE)
+
+    def test_the_longest_club_in_the_league_is_shrunk_to_fit(self):
+        name = "DENVER GLACIER GUARDIANS"
+        size = build.team_line_size(name)
+        self.assertLess(size, build.TEAM_LINE_SIZE)
+        width = build.text_width(name, size, build.TEAM_LINE_TRACKING)
+        self.assertLessEqual(534 + width / 2, build.CANVAS_WIDTH)
 
 
 class DataFileTests(unittest.TestCase):

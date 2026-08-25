@@ -18,6 +18,7 @@ from decimal import Decimal, ROUND_HALF_UP
 HERE = pathlib.Path(__file__).parent
 TEMPLATE_PATH = HERE / "sig.template.svg"
 DATA_PATH = HERE / "data.json"
+LOGO_PATH = HERE / "logo.svg"
 OUTPUT_PATH = HERE / "leyla.svg"
 
 CANVAS_WIDTH = 620.0
@@ -52,9 +53,8 @@ CARD_FADE_OUT = 0.85  # fraction at which it starts fading out
 REGULAR_CARDS = 6
 PLAYOFF_CARDS = 4
 
-MIN_OUTPUT_BYTES = 24000  # the logo alone is ~18KB; anything near this lost the mark
+MIN_OUTPUT_BYTES = 24000  # a signature this small has lost either the crest or the rail
 SIZE_TOLERANCE = 0.10
-MIN_LOGO_PATH_BYTES = 17000
 
 
 class BuildError(Exception):
@@ -245,17 +245,203 @@ def cycle_timings(card_count):
     }
 
 
-def prepare_template(template, has_playoffs):
-    """Keep or drop the playoff card block, then strip the markers either way.
+# --------------------------------------------------------------------------
+# club mark
+#
+# The crest is fetched into logo.svg from the league's sprite stack, so it
+# changes on its own when she is traded. What cannot be automatic is how a
+# given crest sits in the medallion: the marks differ in kind, not degree.
+# --------------------------------------------------------------------------
 
-    The cards live in the template so the design stays in one file; only the
-    decision to include them lives here.
+MEDALLION_RADIUS = 42.0
+MARK_CLIP_REACH = 95.0  # how far past the ring a break-out sector extends
+
+# Hand-tuned per club. Detroit's crest is compact and fills a square, so it
+# needs nothing. Tampa Bay's is a wide lockup whose wordmark spells out the club
+# name already printed under the medallion and turns to mush at 84px, so that
+# band is dropped and the remainder scaled up.
+#   drop   - discard paths lying wholly within this (y0, y1) band of the source
+#   box    - size the remaining artwork is fitted to, against the 84px ring
+#   breaks - arc, clockwise from twelve, through which artwork may cross the ring
+#
+# Measure `breaks` from the RENDERED artwork, never from path coordinates. A
+# filled shape covers far more arc than its corner points do: Tampa Bay's spike
+# has vertices spanning 43-49 degrees but fills 24-58, and a wedge cut to the
+# vertices takes a notch out of it. Its crest leaves the ring in five places;
+# these bounds pass the spike, the jaw edge and the snout, and hold back the two
+# triangle corners at 144-160 and 279-298 degrees.
+MARK_PRESENTATION = {
+    "Tampa_Bay": {"drop": (410.0, 760.0), "box": 104.0, "breaks": (18.0, 120.0)},
+    "Detroit": {"drop": None, "box": 80.0, "breaks": None},
+}
+DEFAULT_PRESENTATION = {"drop": None, "box": 80.0, "breaks": None}
+
+# SVG lets numbers run together wherever the next one starts with a sign or a
+# decimal point, so "758.629.943-3.8" is three numbers and the data cannot be
+# split on whitespace.
+PATH_NUMBER = re.compile(r"[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?")
+PATH_ARGC = {"m": 2, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7, "z": 0}
+
+
+def path_y_range(d):
+    """Vertical extent of one path, in its own user units.
+
+    Control points count toward the range rather than being solved for, which
+    overstates the extent slightly. That is the safe direction: it can only make
+    a path look too tall to drop, never too short.
     """
-    region = r"[ \t]*<!--PLAYOFF_CARDS_START-->\n(.*?)[ \t]*<!--PLAYOFF_CARDS_END-->\n"
+    y = start_y = 0.0
+    seen = []
+    for command, arguments in re.findall(
+        r"([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)", d
+    ):
+        low, relative = command.lower(), command.islower()
+        count = PATH_ARGC[low]
+        numbers = [float(m.group()) for m in PATH_NUMBER.finditer(arguments)]
+        if count == 0:
+            y = start_y
+            continue
+        for offset in range(0, max(len(numbers) - count + 1, 0), count):
+            group = numbers[offset : offset + count]
+            if low == "h":
+                pass
+            elif low == "v":
+                y = y + group[0] if relative else group[0]
+            elif low == "a":
+                y = y + group[6] if relative else group[6]
+            else:
+                for index in range(1, count - 1, 2):
+                    seen.append(y + group[index] if relative else group[index])
+                y = y + group[count - 1] if relative else group[count - 1]
+            seen.append(y)
+            if low == "m":
+                start_y = y
+                low = "l"  # pairs after a moveto are implicit linetos
+    return (min(seen), max(seen)) if seen else None
+
+
+def read_mark(markup):
+    """Split the fetched crest into its viewBox and its drawable body."""
+    opening = re.match(r"<svg\b[^>]*>", markup.strip())
+    if not opening:
+        raise BuildError("logo.svg does not start with an <svg> element")
+    view_box = re.search(r'viewBox="([^"]+)"', opening.group(0))
+    if not view_box:
+        raise BuildError("logo.svg has no viewBox, so the mark cannot be scaled")
+    numbers = [float(n) for n in view_box.group(1).split()]
+    if len(numbers) != 4 or numbers[2] <= 0 or numbers[3] <= 0:
+        raise BuildError(f"logo.svg viewBox {view_box.group(1)!r} is not a usable box")
+    identifier = re.search(r'\sid="([^"]+)"', opening.group(0))
+    body = markup.strip()[len(opening.group(0)) : markup.strip().rindex("</svg>")]
+    return identifier.group(1) if identifier else "", numbers, body
+
+
+def drop_band(body, band):
+    """Remove paths lying wholly inside a horizontal band of the source artwork.
+
+    Wholly inside, not merely overlapping: the club's backing shapes run the full
+    height of the mark and must survive, while the lettering sits entirely within
+    the band. Anything straddling it is kept, because dropping it would take a
+    bite out of artwork that is still wanted.
+    """
+    if band is None:
+        return body
+    low, high = band
+    kept, dropped = [], 0
+    for element in re.findall(r"<path\b[^>]*?/>|<path\b[^>]*?>", body):
+        data = re.search(r'\sd="([^"]+)"', element)
+        extent = path_y_range(data.group(1)) if data else None
+        if extent and low <= extent[0] and extent[1] <= high:
+            dropped += 1
+            continue
+        kept.append(element)
+    if not dropped:
+        raise BuildError(
+            f"mark presentation asks to drop the {low:.0f}-{high:.0f} band "
+            "but no path lies within it; the artwork changed shape"
+        )
+    return "".join(kept)
+
+
+def polar(degrees_clockwise_from_twelve, radius):
+    radians = math.radians(degrees_clockwise_from_twelve)
+    return radius * math.sin(radians), -radius * math.cos(radians)
+
+
+def mark_geometry(markup):
+    """Placement, clip shape and front-of-ring arc for the fetched crest."""
+    name, view_box, body = read_mark(markup)
+    presentation = MARK_PRESENTATION.get(name, DEFAULT_PRESENTATION)
+    body = drop_band(body, presentation["drop"])
+
+    _, _, width, height = view_box
+    scale = presentation["box"] / max(width, height)
+    tokens = {
+        "MARK_TRANSFORM": (
+            f"translate({fmt1(-width * scale / 2)},{fmt1(-height * scale / 2)}) "
+            f"scale({trim(scale, 5)})"
+        )
+    }
+
+    breaks = presentation["breaks"]
+    circle = f'<circle r="{trim(MEDALLION_RADIUS, 1)}"/>'
+    if breaks is None:
+        tokens["MARK_CLIP"] = circle
+        return body, tokens, False
+
+    # The sector is the only place artwork may leave the medallion. Everything
+    # else is held at the ring however far the crest actually extends.
+    start, end = breaks
+    corners = [(0.0, 0.0)] + [
+        polar(start + (end - start) * step / 16, MARK_CLIP_REACH) for step in range(17)
+    ]
+    tokens["MARK_CLIP"] = circle + '<polygon points="%s"/>' % " ".join(
+        f"{fmt1(x)},{fmt1(y)}" for x, y in corners
+    )
+
+    # The ring is drawn once under the crest, then this arc redraws the part the
+    # crest may not cross. That is what makes the parts that do cross read as
+    # breaking out, rather than sitting behind the ring.
+    x0, y0 = polar(end, MEDALLION_RADIUS)
+    x1, y1 = polar(start, MEDALLION_RADIUS)
+    span = (start - end) % 360
+    tokens["RING_FRONT_D"] = (
+        f"M {fmt1(x0)} {fmt1(y0)} A {trim(MEDALLION_RADIUS, 1)} {trim(MEDALLION_RADIUS, 1)} "
+        f"0 {1 if span > 180 else 0} 1 {fmt1(x1)} {fmt1(y1)}"
+    )
+    tokens["RING_FRONT_LEN"] = fmt1(2 * math.pi * MEDALLION_RADIUS * span / 360)
+    return body, tokens, True
+
+
+def optional_block(template, name, keep):
+    """Keep or drop one marked region, removing its markers either way."""
+    region = r"[ \t]*<!--%s_START-->\n(.*?)[ \t]*<!--%s_END-->\n" % (name, name)
     match = re.search(region, template, re.DOTALL)
     if not match:
-        raise BuildError("template has no <!--PLAYOFF_CARDS_START/END--> block")
-    return re.sub(region, match.group(1) if has_playoffs else "", template, flags=re.DOTALL)
+        raise BuildError(f"template has no <!--{name}_START/END--> block")
+    return re.sub(region, match.group(1) if keep else "", template, flags=re.DOTALL)
+
+
+def prepare_template(template, has_playoffs, ring_front):
+    """Resolve every optional region before any token is substituted.
+
+    These blocks live in the template so the design stays in one file; only the
+    decision to include them lives here.
+    """
+    template = optional_block(template, "PLAYOFF_CARDS", has_playoffs)
+    return optional_block(template, "RING_FRONT", ring_front)
+
+
+def splice_mark(svg, body):
+    """Drop the fetched crest in after token substitution.
+
+    Deliberately last: the crest is markup from another system, and doing this
+    after rendering means nothing inside it can ever be mistaken for a token.
+    """
+    marker = "<!--CLUB_MARK-->"
+    if svg.count(marker) != 1:
+        raise BuildError(f"template needs exactly one {marker}, found {svg.count(marker)}")
+    return svg.replace(marker, body)
 
 
 def count_cards(template):
@@ -263,6 +449,45 @@ def count_cards(template):
     if numbers != list(range(1, len(numbers) + 1)):
         raise BuildError(f"card classes are not a contiguous run from c1: found {numbers}")
     return len(numbers)
+
+
+TEAM_LINE_SIZE = 9.0        # the .team face at its design size
+TEAM_LINE_TRACKING = 2.0    # letter-spacing the class applies
+TEAM_LINE_HALF_WIDTH = 82.0  # centre at x=534, between the divider at 446 and the canvas edge
+
+
+def team_line_size(name):
+    """Font size that keeps the club name inside its column.
+
+    The club is read from the index now rather than typed by hand, so the name
+    changes on its own the day she is traded. At the design size the longest
+    names in the league ("Denver Glacier Guardians") run past the canvas edge and
+    would be clipped by the viewBox, so the line gives up a little size instead.
+    """
+    width = text_width(name, TEAM_LINE_SIZE, TEAM_LINE_TRACKING)
+    if width <= 2 * TEAM_LINE_HALF_WIDTH:
+        return TEAM_LINE_SIZE
+    return round1(TEAM_LINE_SIZE * (2 * TEAM_LINE_HALF_WIDTH) / width)
+
+
+def stats_source(player, team, stats):
+    """The season line under the medallion.
+
+    Normally just the season, because the club and league are already named on
+    the two lines above it. When the numbers were earned somewhere else it says
+    so, which is the whole window between a call-up and a first game in the new
+    league: the crest is her new club, the numbers are her old one, and the
+    signature would otherwise quietly imply she put up 66 games for a team she
+    has yet to play for.
+    """
+    season = f"S{stats['season']}"
+    earned_elsewhere = (
+        stats["league"] != player["currentLeague"]
+        or stats["team"].upper() != team["abbreviation"].upper()
+    )
+    if not earned_elsewhere:
+        return season
+    return f"{season}  ·  {stats['league'].upper()} {stats['team'].upper()}"
 
 
 def build_tokens(data, card_count):
@@ -286,6 +511,8 @@ def build_tokens(data, card_count):
         "TEAM": team["name"].upper(),
         "LEAGUE": player["currentLeague"].upper(),
         "SEASON": str(stats["season"]),
+        "STATS_SOURCE": stats_source(player, team, stats),
+        "TEAM_SIZE": trim(team_line_size(team["name"].upper()), 1),
     }
     tokens.update(bar_geometry(player["totalTPE"], player["appliedTPE"]))
     tokens.update(cycle_timings(card_count))
@@ -366,13 +593,21 @@ def check_bar_widths(svg):
     return errors
 
 
-def check_logo(svg):
-    paths = re.findall(r'<path[^>]*\sd="([^"]+)"', svg)
-    total = sum(len(d) for d in paths)
-    if total < MIN_LOGO_PATH_BYTES:
+def check_logo(svg, body):
+    """The crest must arrive in the output substantially intact.
+
+    Measured against the mark actually fetched rather than a fixed byte count,
+    so the check keeps working when she changes club and the new crest is a
+    different size entirely.
+    """
+    want = sum(len(d) for d in re.findall(r'<path[^>]*\sd="([^"]+)"', body))
+    got = sum(len(d) for d in re.findall(r'<path[^>]*\sd="([^"]+)"', svg))
+    if not want:
+        return ["the fetched club mark has no path data at all"]
+    if got < want:
         return [
-            f"logo path data is {total} bytes across {len(paths)} paths, "
-            f"want at least {MIN_LOGO_PATH_BYTES}; the club mark was eaten"
+            f"output carries {got} bytes of path data against {want} in the fetched "
+            "mark; the club mark was eaten"
         ]
     return []
 
@@ -402,7 +637,7 @@ def check_labels_fit(svg):
     return errors
 
 
-def validate(svg, template):
+def validate(svg, template, body):
     """Return a list of reasons this SVG must not be written. Empty means good."""
     errors = []
 
@@ -428,26 +663,31 @@ def validate(svg, template):
         if required not in svg:
             errors.append(f"{label} did not survive the build ({required!r} missing)")
 
-    errors.extend(check_logo(svg))
+    errors.extend(check_logo(svg, body))
     errors.extend(check_labels_fit(svg))
 
     size = len(svg.encode("utf-8"))
     if size < MIN_OUTPUT_BYTES:
         errors.append(f"output is {size} bytes, below the {MIN_OUTPUT_BYTES} floor")
-    reference = len(template.encode("utf-8"))
+
+    # The crest is no longer part of the template, so the template alone is no
+    # longer the right yardstick. Template plus the mark spliced into it is.
+    reference = len(template.encode("utf-8")) + len(body.encode("utf-8"))
     drift = abs(size - reference) / reference
     if drift > SIZE_TOLERANCE:
         errors.append(
-            f"output is {size} bytes against a {reference}-byte template, "
-            f"a {drift:.0%} change; over the {SIZE_TOLERANCE:.0%} tolerance"
+            f"output is {size} bytes against an expected {reference} "
+            f"(template plus mark), a {drift:.0%} change; over the "
+            f"{SIZE_TOLERANCE:.0%} tolerance"
         )
     return errors
 
 
-def build(template, data):
+def build(template, data, mark_markup):
     """Render and validate. Raises BuildError rather than returning bad markup."""
     has_playoffs = "playoffs" in data["stats"]
-    prepared = prepare_template(template, has_playoffs)
+    body, mark_tokens, ring_front = mark_geometry(mark_markup)
+    prepared = prepare_template(template, has_playoffs, ring_front)
 
     card_count = count_cards(prepared)
     expected = REGULAR_CARDS + (PLAYOFF_CARDS if has_playoffs else 0)
@@ -457,8 +697,10 @@ def build(template, data):
             f"{'present' if has_playoffs else 'absent'}, template has {card_count}"
         )
 
-    svg = render(prepared, build_tokens(data, card_count))
-    errors = validate(svg, prepared)
+    tokens = build_tokens(data, card_count)
+    tokens.update(mark_tokens)
+    svg = splice_mark(render(prepared, tokens), body)
+    errors = validate(svg, prepared, body)
     if errors:
         raise BuildError("refusing to write leyla.svg:\n  - " + "\n  - ".join(errors))
     return svg
@@ -468,7 +710,8 @@ def main():
     try:
         template = TEMPLATE_PATH.read_text(encoding="utf-8")
         data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-        svg = build(template, data)
+        mark = LOGO_PATH.read_text(encoding="utf-8")
+        svg = build(template, data, mark)
     except (OSError, json.JSONDecodeError, KeyError, BuildError) as exc:
         print(f"build failed: {exc}", file=sys.stderr)
         return 1

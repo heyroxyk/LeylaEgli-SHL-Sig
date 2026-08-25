@@ -10,6 +10,7 @@ moved, and leaves the commit log usable as a dated record of TPE progression.
 """
 import json
 import pathlib
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -19,6 +20,13 @@ PLAYER_ID = 2500  # portal pid, from portal.simulationhockey.com/player/2500
 PORTAL_PLAYER = "https://portal.simulationhockey.com/api/v1/player?pid={pid}"
 INDEX_TEAM = "https://index.simulationhockey.com/api/v1/teams/{team}?league={league}"
 INDEX_STATS = "https://index.simulationhockey.com/api/v1/players/stats/{iid}?league={league}&type={phase}"
+
+# Club crests are not an API. Each league ships one SVG sprite stack holding
+# every team's mark as a nested <svg> keyed by the team's city, spaces becoming
+# underscores. Checked against the live team list: 24/24 SHL and 16/16 SMJHL
+# resolve by that rule. (The national leagues key on nameDetails.second instead,
+# which a club signature never needs.)
+INDEX_STACK = "https://index.simulationhockey.com/stack/{league}.stack.svg"
 
 # The index documents these as "rs", "ps" and "po". Those values are silently
 # ignored and fall through to regular season, so passing them looks like it
@@ -30,7 +38,12 @@ PLAYOFFS = "playoffs"
 # indexRecords use that same numbering, so one map serves both lookups.
 LEAGUE_IDS = {"SHL": 0, "SMJHL": 1, "IIHF": 2, "WJC": 3}
 
+# Only these two carry a club season. IIHF and WJC are tournaments, and a
+# national-team run must never stand in for a league record on a club signature.
+CLUB_LEAGUES = ("SHL", "SMJHL")
+
 DATA_PATH = pathlib.Path(__file__).parent / "data.json"
+LOGO_PATH = pathlib.Path(__file__).parent / "logo.svg"
 
 # The portal answers 403 to urllib's default "Python-urllib/3.x". Identify the
 # job and where it comes from, so whoever runs the API can see who is calling.
@@ -133,19 +146,47 @@ def fetch_player():
     return player
 
 
-def find_index_id(player, league_id):
+def index_ids_by_league(player):
+    """Every league the index has opened a record for her in, as {leagueID: indexID}."""
     records = player.get("indexRecords")
     if not isinstance(records, list):
         raise ShapeError("portal player record: 'indexRecords' is not a list")
+    found = {}
     for record in records:
-        if isinstance(record, dict) and record.get("leagueID") == league_id:
-            index_id = record.get("indexID")
-            if not isinstance(index_id, int):
-                raise ShapeError(f"indexRecords entry for league {league_id} has no usable indexID")
-            return index_id
+        if not isinstance(record, dict):
+            continue
+        league_id, index_id = record.get("leagueID"), record.get("indexID")
+        if isinstance(league_id, int) and isinstance(index_id, int):
+            found[league_id] = index_id
+    if not found:
+        raise ShapeError("portal player record: no usable indexRecords entries")
+    return found
+
+
+def find_stats_source(player):
+    """Which league's index record the on-ice numbers come from.
+
+    Normally her current one. But a call-up joins a club before the index has
+    any record of her in that league, so currentLeague can legitimately have no
+    indexID for weeks. Falling back to the club league she does have keeps her
+    last real season on the signature instead of blanking it, and the fallback
+    stops applying by itself the moment the index opens the new record.
+
+    Returns (league name, league id, index id).
+    """
+    available = index_ids_by_league(player)
+    current = player["currentLeague"]
+
+    candidates = [current] if current in CLUB_LEAGUES else []
+    candidates += [name for name in CLUB_LEAGUES if name != current]
+    for name in candidates:
+        league_id = LEAGUE_IDS[name]
+        if league_id in available:
+            return name, league_id, available[league_id]
+
     raise ShapeError(
-        f"no indexRecords entry for league {league_id} "
-        f"({player['currentLeague']}); saw {[r.get('leagueID') for r in records]}"
+        f"no index record in any club league ({', '.join(CLUB_LEAGUES)}); "
+        f"she has records for league IDs {sorted(available)}"
     )
 
 
@@ -156,15 +197,19 @@ def fetch_team(team_id, league_id):
     require_fields(team, {"name": str, "abbreviation": str}, f"index team {team_id}")
     if team.get("id") != team_id:
         raise ShapeError(f"asked index for team {team_id}, got {team.get('id')}")
-    return {"name": team["name"], "abbreviation": team["abbreviation"]}
+    # Returned whole rather than trimmed here: the crest lookup needs
+    # nameDetails, which does not belong in data.json.
+    return team
 
 
 def fetch_phase(index_id, league_id, phase):
     records = get_json(INDEX_STATS.format(iid=index_id, league=league_id, phase=phase))
     if not isinstance(records, list):
         raise ShapeError(f"index {phase} stats for {index_id} is not a list")
+    spec = {f: int for f in STAT_FIELDS}
+    spec["team"] = str  # who she played these games for, which is not always her current club
     for record in records:
-        require_fields(record, {f: int for f in STAT_FIELDS}, f"index {phase} stats {index_id}")
+        require_fields(record, spec, f"index {phase} stats {index_id}")
     return records
 
 
@@ -197,6 +242,10 @@ def fetch_stats(index_id, league_id):
 
     stats = {
         "season": season,
+        # Whose sweater these numbers were earned in. Usually her current club,
+        # but not between a call-up and her first game in the new league, which
+        # is exactly when the signature must not imply otherwise.
+        "team": regular["team"],
         "regular": {field: regular[field] for field in PHASE_FIELDS},
     }
     stats["regular"]["advanced"] = {field: advanced[field] for field in ADVANCED_FIELDS}
@@ -214,21 +263,72 @@ def fetch_stats(index_id, league_id):
     return stats
 
 
+def get_text(url):
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        # The stacks run to a few megabytes, so this wants a longer rope than the
+        # JSON calls get.
+        with urllib.request.urlopen(request, timeout=120) as response:
+            if response.status != 200:
+                raise ShapeError(f"{url} returned HTTP {response.status}")
+            return response.read().decode("utf-8")
+    except urllib.error.URLError as exc:
+        raise ShapeError(f"{url} unreachable: {exc}") from exc
+
+
+def symbol_id(team):
+    """The sprite key for a club: its city with spaces as underscores."""
+    details = team.get("nameDetails")
+    if not isinstance(details, dict) or not isinstance(details.get("first"), str):
+        raise ShapeError(f"index team {team.get('name')!r} has no nameDetails.first to key on")
+    return details["first"].replace(" ", "_")
+
+
+def fetch_mark(team, league):
+    """The club crest, lifted out of its league's sprite stack.
+
+    Written to its own file rather than into data.json: it is markup, not data,
+    and data.json is documented as raw API values only. It also changes only on
+    a trade, so an unchanged club leaves the file byte-identical and the nightly
+    workflow stays quiet.
+    """
+    key = symbol_id(team)
+    stack = get_text(INDEX_STACK.format(league=league.lower()))
+    match = re.search(r'<svg[^>]*\sid="%s"[^>]*>.*?</svg>' % re.escape(key), stack, re.DOTALL)
+    if not match:
+        available = sorted(set(re.findall(r'<svg[^>]*\sid="([^"]+)"', stack)))
+        raise ShapeError(
+            f"no mark {key!r} in the {league} stack; it holds {len(available)} symbols "
+            f"including {', '.join(available[:6])}"
+        )
+    mark = match.group(0)
+    if 'viewBox="' not in mark[: mark.index(">") + 1]:
+        raise ShapeError(f"mark {key!r} has no viewBox, so the build cannot scale it")
+    return mark
+
+
 def collect():
+    """Everything the build needs: the JSON payload, and the club crest markup."""
     player = fetch_player()
-    league_id = LEAGUE_IDS[player["currentLeague"]]
-    index_id = find_index_id(player, league_id)
-    return {
+    club_league = player["currentLeague"]
+    team = fetch_team(player["currentTeamID"], LEAGUE_IDS[club_league])
+    stats_league, stats_league_id, index_id = find_stats_source(player)
+
+    stats = fetch_stats(index_id, stats_league_id)
+    stats["league"] = stats_league
+
+    data = {
         "player": {field: player[field] for field in PLAYER_FIELDS},
         "attributes": {name: player["attributes"][name] for name in ATTRIBUTES},
-        "team": fetch_team(player["currentTeamID"], league_id),
-        "stats": fetch_stats(index_id, league_id),
+        "team": {"name": team["name"], "abbreviation": team["abbreviation"]},
+        "stats": stats,
     }
+    return data, fetch_mark(team, club_league)
 
 
 def main():
     try:
-        data = collect()
+        data, mark = collect()
     except ShapeError as exc:
         print(f"fetch failed: {exc}", file=sys.stderr)
         return 1
@@ -238,14 +338,23 @@ def main():
     DATA_PATH.write_text(
         json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
     )
-    player, stats = data["player"], data["stats"]
+    LOGO_PATH.write_text(mark + "\n", encoding="utf-8", newline="\n")
+
+    player, stats, team = data["player"], data["stats"], data["team"]
     playoffs = stats.get("playoffs")
+    # Name the source of the stats whenever it is not the club she plays for now,
+    # so a call-up is visible in the log rather than looking like stale data.
+    elsewhere = (
+        "" if stats["team"] == team["abbreviation"] and stats["league"] == player["currentLeague"]
+        else f" [stats from {stats['league']} {stats['team']}]"
+    )
     print(
         f"{player['name']}: {player['totalTPE']} TPE "
         f"({player['appliedTPE']} applied, {player['bankedTPE']} banked), "
-        f"{data['team']['name']}, S{stats['season']} "
+        f"{team['name']} ({player['currentLeague']}), S{stats['season']} "
         f"{stats['regular']['gamesPlayed']}gp regular"
         + (f" + {playoffs['gamesPlayed']}gp playoffs" if playoffs else " (no playoff games)")
+        + elsewhere
     )
     return 0
 
