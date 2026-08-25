@@ -27,6 +27,13 @@
   .team{fill:var(--muted); font:700 9px/1 Verdana,sans-serif; letter-spacing:2px}
   .ax{fill:var(--muted); font:700 6.5px/1 Verdana,sans-serif; letter-spacing:1.2px}
   .lbl{fill:var(--muted); font:700 8px/1 Verdana,sans-serif; letter-spacing:1.6px}
+  /* The season, set large and faint behind the cards. Deliberately the club's
+     second colour at low opacity: the banked TPE segment directly above is the
+     same pink at full strength, and keeping this one ghosted is what stops the
+     two reading as the same element. It also has to sit under whatever stat
+     value lands on top of it without fighting for the same attention. */
+  .ghost{fill:var(--accent2); fill-opacity:0.15; letter-spacing:-1px;
+         font:700 43.8px/1 "Arial Narrow","Haettenschweiler",Impact,sans-serif}
   .val{fill:var(--ink); font:700 15px/1 Verdana,sans-serif}
 
   /* the divider IS the bar: full width = 2000 TPE.
@@ -148,12 +155,12 @@
   </path>
 <!--RING_FRONT_END-->
 </g>
-<!-- Club on top, then her league, then the season these numbers come from.
-     The third line names its league and team whenever they are not the club
-     above it, which is the whole gap between a call-up and a first game. -->
-<text class="team" x="534" y="124" text-anchor="middle" style="font-size:{{TEAM_SIZE}}px">{{TEAM}}</text>
-<text class="ax"   x="534" y="135" text-anchor="middle">{{LEAGUE}}</text>
-<text class="ax"   x="534" y="146" text-anchor="middle">{{STATS_SOURCE}}</text>
+<!-- Club and league only. The season sits on the rail with the numbers it
+     describes, and where those numbers were earned is deliberately not shown:
+     data.json still records stats.league and stats.team, so a future treatment
+     can surface it without another API change. -->
+<text class="team" x="534" y="126" text-anchor="middle" style="font-size:{{TEAM_SIZE}}px">{{TEAM}}</text>
+<text class="ax"   x="534" y="139" text-anchor="middle">{{LEAGUE}}</text>
 
 <!-- THE DIVIDER IS THE BAR. Full 620 width = 2000 TPE.
      The dividers at 155/310/465 cut it into four 500-TPE segments. They are
@@ -170,8 +177,16 @@
 <text class="tpeLbl tpeInk tpeHead" x="{{TPE_TOTAL_LABEL_X}}" y="163">{{TPE_TOTAL_LABEL}}</text>
 <text class="tpeLbl tpeInk tpeHead" x="613" y="163" text-anchor="end" fill-opacity="0.45">{{TPE_SCALE_LABEL}}</text>
 
-<!-- ticker rail -->
+<!-- ticker rail. The season is ghosted in behind the cards rather than printed
+     under the crest, because it describes these numbers rather than the club.
+     Sized so its ink fills the rail's 32px exactly: this face puts all of its
+     ink above the baseline, 0.73 of the font size, measured rather than taken
+     from a metrics table because the S overshoots its cap height. The clip
+     stays as a backstop, since a machine without Arial Narrow falls back to a
+     face with different proportions. -->
 <rect class="rail" x="0" y="168" width="620" height="32"/>
+<clipPath id="rail"><rect x="0" y="168" width="620" height="32"/></clipPath>
+<text class="ghost" clip-path="url(#rail)" x="613" y="200" text-anchor="end">S{{SEASON}}</text>
 
 <g class="card c1">
   <text class="lbl" x="24"  y="180">GP</text><text class="val" x="24"  y="195">{{ST_GP}}</text>
