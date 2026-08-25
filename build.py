@@ -262,19 +262,27 @@ MARK_CLIP_REACH = 95.0  # how far past the ring a break-out sector extends
 # band is dropped and the remainder scaled up.
 #   drop   - discard paths lying wholly within this (y0, y1) band of the source
 #   box    - size the remaining artwork is fitted to, against the 84px ring
+#   focus  - point of the source artwork to sit on the medallion's centre;
+#            defaults to the middle of the viewBox
 #   breaks - arc, clockwise from twelve, through which artwork may cross the ring
 #
-# Measure `breaks` from the RENDERED artwork, never from path coordinates. A
-# filled shape covers far more arc than its corner points do: Tampa Bay's spike
-# has vertices spanning 43-49 degrees but fills 24-58, and a wedge cut to the
-# vertices takes a notch out of it. Its crest leaves the ring in five places;
-# these bounds pass the spike, the jaw edge and the snout, and hold back the two
-# triangle corners at 144-160 and 279-298 degrees.
+# Measure `breaks` from the RENDERED artwork, never from path coordinates, and
+# re-measure it whenever `box` or `focus` changes, because both move the artwork
+# against the ring. A filled shape covers far more arc than its corner points do:
+# this spike has vertices spanning 43-49 degrees but fills 42-62, and a wedge cut
+# to the vertices takes a notch out of it. The crest leaves the ring in five
+# places; these bounds pass the spike (42-62), the jaw edge (87-92) and the snout
+# (104-123), and hold back the two triangle corners at 139-176 and 263-279.
+# Tampa Bay's focus is the fish's own ink centre, measured from a render. With
+# the wordmark dropped, the artwork's geometric middle falls 109 units below the
+# fish, because the triangle keeps running on past it, so centring on the box
+# would leave the fish riding high in the medallion.
 MARK_PRESENTATION = {
-    "Tampa_Bay": {"drop": (410.0, 760.0), "box": 104.0, "breaks": (18.0, 120.0)},
-    "Detroit": {"drop": None, "box": 80.0, "breaks": None},
+    "Tampa_Bay": {"drop": (410.0, 760.0), "box": 104.0,
+                  "focus": (500.0, 337.0), "breaks": (32.0, 130.0)},
+    "Detroit": {"drop": None, "box": 80.0, "focus": None, "breaks": None},
 }
-DEFAULT_PRESENTATION = {"drop": None, "box": 80.0, "breaks": None}
+DEFAULT_PRESENTATION = {"drop": None, "box": 80.0, "focus": None, "breaks": None}
 
 # SVG lets numbers run together wherever the next one starts with a sign or a
 # decimal point, so "758.629.943-3.8" is three numbers and the data cannot be
@@ -376,9 +384,10 @@ def mark_geometry(markup):
 
     _, _, width, height = view_box
     scale = presentation["box"] / max(width, height)
+    focus_x, focus_y = presentation.get("focus") or (width / 2, height / 2)
     tokens = {
         "MARK_TRANSFORM": (
-            f"translate({fmt1(-width * scale / 2)},{fmt1(-height * scale / 2)}) "
+            f"translate({fmt1(-focus_x * scale)},{fmt1(-focus_y * scale)}) "
             f"scale({trim(scale, 5)})"
         )
     }
@@ -478,7 +487,7 @@ def build_tokens(data, card_count):
     tokens = {
         "ARIA_LABEL": (
             f"{player['name']}, number {player['jerseyNumber']}, "
-            f"{player['position']}, {team['name']}"
+            f"{player['position']}, {team['name']}, {player['currentLeague']}"
         ),
         "NUMBER": str(player["jerseyNumber"]),
         "NAME": player["name"].upper(),
