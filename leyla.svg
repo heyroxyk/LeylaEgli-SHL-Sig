@@ -46,7 +46,7 @@
   .tpeTotal{ animation: fillTotal 1.2s cubic-bezier(.2,.8,.2,1) .5s both; }
   .tpeApp{ animation: fillApp 1.2s cubic-bezier(.2,.8,.2,1) .75s both; }
   .tpeHead{ animation: headIn .5s ease-out 1.5s both; }
-  @keyframes fillTotal{ from{width:0} to{width:256.1px} }
+  @keyframes fillTotal{ from{width:0} to{width:258.9px} }
   @keyframes fillApp{ from{width:0} to{width:254.2px} }
   @keyframes headIn{ from{opacity:0} to{opacity:1} }
 
@@ -77,7 +77,7 @@
     .shape{animation:none; transform:none; opacity:1}
     .mark{animation:none; opacity:1}
     .tpeHead{animation:none; opacity:1}
-    .tpeTotal{animation:none; width:256.1px}
+    .tpeTotal{animation:none; width:258.9px}
     .tpeApp{animation:none; width:254.2px}
   }
 </style>
@@ -141,14 +141,14 @@
      drawn before the labels on purpose: as the head travels right a label will
      eventually reach one, and passing behind the text beats striking through it. -->
 <rect fill="var(--rule)" x="0" y="152" width="620" height="16"/>
-<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="256.1" height="16"/>
+<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="258.9" height="16"/>
 <rect class="tpeApp" fill="var(--accent)" x="0" y="152" width="254.2" height="16"/>
 <line stroke="var(--bg)" x1="155" y1="152" x2="155" y2="168"/>
 <line stroke="var(--bg)" x1="310" y1="152" x2="310" y2="168"/>
 <line stroke="var(--bg)" x1="465" y1="152" x2="465" y2="168"/>
-<line class="tpeHead" stroke="var(--accent)" x1="256.1" y1="150" x2="256.1" y2="170"/>
+<line class="tpeHead" stroke="var(--accent)" x1="258.9" y1="150" x2="258.9" y2="170"/>
 <text class="tpeLbl tpeOn tpeHead"  x="248.2" y="163" text-anchor="end">820</text>
-<text class="tpeLbl tpeInk tpeHead" x="262.1" y="163">826 TPE</text>
+<text class="tpeLbl tpeInk tpeHead" x="264.9" y="163">835 TPE</text>
 <text class="tpeLbl tpeInk tpeHead" x="613" y="163" text-anchor="end" fill-opacity="0.45">2000</text>
 
 <!-- ticker rail. The season is ghosted in behind the cards rather than printed
