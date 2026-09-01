@@ -46,8 +46,8 @@
   .tpeTotal{ animation: fillTotal 1.2s cubic-bezier(.2,.8,.2,1) .5s both; }
   .tpeApp{ animation: fillApp 1.2s cubic-bezier(.2,.8,.2,1) .75s both; }
   .tpeHead{ animation: headIn .5s ease-out 1.5s both; }
-  @keyframes fillTotal{ from{width:0} to{width:258.9px} }
-  @keyframes fillApp{ from{width:0} to{width:254.2px} }
+  @keyframes fillTotal{ from{width:0} to{width:272.8px} }
+  @keyframes fillApp{ from{width:0} to{width:265.4px} }
   @keyframes headIn{ from{opacity:0} to{opacity:1} }
 
   /* The placement transform lives on the INNER group on purpose. A CSS
@@ -77,8 +77,8 @@
     .shape{animation:none; transform:none; opacity:1}
     .mark{animation:none; opacity:1}
     .tpeHead{animation:none; opacity:1}
-    .tpeTotal{animation:none; width:258.9px}
-    .tpeApp{animation:none; width:254.2px}
+    .tpeTotal{animation:none; width:272.8px}
+    .tpeApp{animation:none; width:265.4px}
   }
 </style>
 
@@ -106,12 +106,12 @@
   <line stroke="var(--grid)" x1="338" y1="78" x2="291.2" y2="51.0"/>
 
   <g class="shape">
-    <polygon points="338.0,32.1 373.1,57.8 371.9,97.6 338.0,107.7 306.4,96.2 302.9,57.8"
+    <polygon points="338.0,32.1 373.1,57.8 373.1,98.3 338.0,107.7 306.4,96.2 302.9,57.8"
              fill="var(--accent)" fill-opacity="0.22" stroke="var(--accent)"
              stroke-width="1.6" stroke-linejoin="round"/>
     <circle cx="338.0" cy="32.1" r="2.2" fill="var(--accent)"/>
     <circle cx="373.1" cy="57.8" r="2.2" fill="var(--accent)"/>
-    <circle cx="371.9" cy="97.6" r="2.2" fill="var(--accent)"/>
+    <circle cx="373.1" cy="98.3" r="2.2" fill="var(--accent)"/>
     <circle cx="338.0" cy="107.7" r="2.2" fill="var(--accent)"/>
     <circle cx="306.4" cy="96.2" r="2.2" fill="var(--accent)"/>
     <circle cx="302.9" cy="57.8" r="2.2" fill="var(--accent)"/>
@@ -141,14 +141,14 @@
      drawn before the labels on purpose: as the head travels right a label will
      eventually reach one, and passing behind the text beats striking through it. -->
 <rect fill="var(--rule)" x="0" y="152" width="620" height="16"/>
-<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="258.9" height="16"/>
-<rect class="tpeApp" fill="var(--accent)" x="0" y="152" width="254.2" height="16"/>
+<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="272.8" height="16"/>
+<rect class="tpeApp" fill="var(--accent)" x="0" y="152" width="265.4" height="16"/>
 <line stroke="var(--bg)" x1="155" y1="152" x2="155" y2="168"/>
 <line stroke="var(--bg)" x1="310" y1="152" x2="310" y2="168"/>
 <line stroke="var(--bg)" x1="465" y1="152" x2="465" y2="168"/>
-<line class="tpeHead" stroke="var(--accent)" x1="258.9" y1="150" x2="258.9" y2="170"/>
-<text class="tpeLbl tpeOn tpeHead"  x="248.2" y="163" text-anchor="end">820</text>
-<text class="tpeLbl tpeInk tpeHead" x="264.9" y="163">835 TPE</text>
+<line class="tpeHead" stroke="var(--accent)" x1="272.8" y1="150" x2="272.8" y2="170"/>
+<text class="tpeLbl tpeOn tpeHead"  x="259.4" y="163" text-anchor="end">856</text>
+<text class="tpeLbl tpeInk tpeHead" x="278.8" y="163">880 TPE</text>
 <text class="tpeLbl tpeInk tpeHead" x="613" y="163" text-anchor="end" fill-opacity="0.45">2000</text>
 
 <!-- ticker rail. The season is ghosted in behind the cards rather than printed
