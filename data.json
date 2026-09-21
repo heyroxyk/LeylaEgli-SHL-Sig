@@ -15,7 +15,7 @@
     "leadership": 15,
     "offensiveRead": 16,
     "passing": 15,
-    "positioning": 15,
+    "positioning": 16,
     "professionalism": 15,
     "puckhandling": 15,
     "screening": 5,
@@ -30,8 +30,8 @@
     "temperament": 15
   },
   "player": {
-    "appliedTPE": 881,
-    "bankedTPE": 35,
+    "appliedTPE": 906,
+    "bankedTPE": 10,
     "birthplace": "Zug, Switzerland",
     "currentLeague": "SHL",
     "currentTeamID": 6,
