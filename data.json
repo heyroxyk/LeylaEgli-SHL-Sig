@@ -14,7 +14,7 @@
     "hitting": 9,
     "leadership": 15,
     "offensiveRead": 16,
-    "passing": 15,
+    "passing": 16,
     "positioning": 16,
     "professionalism": 15,
     "puckhandling": 15,
@@ -30,8 +30,8 @@
     "temperament": 15
   },
   "player": {
-    "appliedTPE": 906,
-    "bankedTPE": 33,
+    "appliedTPE": 931,
+    "bankedTPE": 9,
     "birthplace": "Zug, Switzerland",
     "currentLeague": "SHL",
     "currentTeamID": 6,
@@ -41,7 +41,7 @@
     "jerseyNumber": 76,
     "name": "Leyla Egli",
     "position": "Right Defense",
-    "totalTPE": 939,
+    "totalTPE": 940,
     "weight": 178
   },
   "stats": {
