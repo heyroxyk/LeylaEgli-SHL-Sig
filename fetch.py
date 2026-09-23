@@ -20,6 +20,7 @@ PLAYER_ID = 2500  # portal pid, from portal.simulationhockey.com/player/2500
 PORTAL_PLAYER = "https://portal.simulationhockey.com/api/v1/player?pid={pid}"
 INDEX_TEAM = "https://index.simulationhockey.com/api/v1/teams/{team}?league={league}"
 INDEX_STATS = "https://index.simulationhockey.com/api/v1/players/stats/{iid}?league={league}&type={phase}"
+INDEX_SEARCH = "https://index.simulationhockey.com/api/v2/player/playerSearch?league={league}"
 
 # Club crests are not an API. Each league ships one SVG sprite stack holding
 # every team's mark as a nested <svg> keyed by the team's city, spaces becoming
@@ -163,10 +164,30 @@ def index_ids_by_league(player):
     return found
 
 
+def search_index_id(name, league_id):
+    """Her index ID in a league by exact name, or None unless exactly one player matches.
+
+    The portal is slow to link a new index record: in S90 the index had her as
+    SHL player 5886 and six games in while the portal still listed only SMJHL.
+    Refusing an ambiguous match means a namesake can never stand in for her.
+    """
+    roster = get_json(INDEX_SEARCH.format(league=league_id))
+    if not isinstance(roster, list):
+        raise ShapeError(f"index playerSearch?league={league_id} is not a list")
+    matches = {
+        entry["PlayerID"]
+        for entry in roster
+        if isinstance(entry, dict) and entry.get("Name") == name
+        and isinstance(entry.get("PlayerID"), int)
+    }
+    return matches.pop() if len(matches) == 1 else None
+
+
 def find_stats_source(player):
     """Which league's index record the on-ice numbers come from.
 
-    Normally her current one. But a call-up joins a club before the index has
+    Normally her current one, from the portal's links or, failing those, the
+    index's own player search. But a call-up joins a club before the index has
     any record of her in that league, so currentLeague can legitimately have no
     indexID for weeks. Falling back to the club league she does have keeps her
     last real season on the signature instead of blanking it, and the fallback
@@ -176,6 +197,11 @@ def find_stats_source(player):
     """
     available = index_ids_by_league(player)
     current = player["currentLeague"]
+
+    if current in CLUB_LEAGUES and LEAGUE_IDS[current] not in available:
+        found = search_index_id(player["name"], LEAGUE_IDS[current])
+        if found is not None:
+            available = {**available, LEAGUE_IDS[current]: found}
 
     candidates = [current] if current in CLUB_LEAGUES else []
     candidates += [name for name in CLUB_LEAGUES if name != current]

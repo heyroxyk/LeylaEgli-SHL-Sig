@@ -63,13 +63,13 @@
      than speeding up. build.py writes every timing below from the live card
      count: the percentages are one card's turn expressed against the whole
      loop, so they cannot be hardcoded without breaking the day a card appears. */
-  .card{ opacity:0; animation: cycle 35s ease-in-out infinite; }
-  .c2{animation-delay:-31.5s} .c3{animation-delay:-28s} .c4{animation-delay:-24.5s} .c5{animation-delay:-21s} .c6{animation-delay:-17.5s} .c7{animation-delay:-14s} .c8{animation-delay:-10.5s} .c9{animation-delay:-7s} .c10{animation-delay:-3.5s}
+  .card{ opacity:0; animation: cycle 21s ease-in-out infinite; }
+  .c2{animation-delay:-17.5s} .c3{animation-delay:-14s} .c4{animation-delay:-10.5s} .c5{animation-delay:-7s} .c6{animation-delay:-3.5s}
   @keyframes cycle{
     0%   {opacity:0; transform:translateY(6px)}
-    1.5% {opacity:1; transform:translateY(0)}
-    8.5%{opacity:1; transform:translateY(0)}
-    10%{opacity:0; transform:translateY(-6px)}
+    2.5% {opacity:1; transform:translateY(0)}
+    14.167%{opacity:1; transform:translateY(0)}
+    16.667%{opacity:0; transform:translateY(-6px)}
     100% {opacity:0; transform:translateY(-6px)}
   }
   @media (prefers-reduced-motion: reduce){
@@ -163,66 +163,42 @@
      what actually lands the right edge of the 9 on the edge of the canvas. -->
 <rect class="rail" x="0" y="168" width="620" height="32"/>
 <clipPath id="rail"><rect x="0" y="168" width="620" height="32"/></clipPath>
-<text class="ghost" clip-path="url(#rail)" x="620.9" y="200" text-anchor="end">S89</text>
+<text class="ghost" clip-path="url(#rail)" x="620.9" y="200" text-anchor="end">S90</text>
 
 <g class="card c1">
-  <text class="lbl" x="24"  y="180">GP</text><text class="val" x="24"  y="195">66</text>
-  <text class="lbl" x="174" y="180">G</text><text class="val" x="174" y="195">11</text>
-  <text class="lbl" x="324" y="180">A</text><text class="val" x="324" y="195">51</text>
-  <text class="lbl" x="474" y="180">PTS</text><text class="val" x="474" y="195">62</text>
+  <text class="lbl" x="24"  y="180">GP</text><text class="val" x="24"  y="195">6</text>
+  <text class="lbl" x="174" y="180">G</text><text class="val" x="174" y="195">1</text>
+  <text class="lbl" x="324" y="180">A</text><text class="val" x="324" y="195">2</text>
+  <text class="lbl" x="474" y="180">PTS</text><text class="val" x="474" y="195">3</text>
 </g>
 <g class="card c2">
-  <text class="lbl" x="24"  y="180">+/-</text><text class="val" x="24"  y="195">+21</text>
-  <text class="lbl" x="174" y="180">PIM</text><text class="val" x="174" y="195">50</text>
-  <text class="lbl" x="324" y="180">SOG</text><text class="val" x="324" y="195">157</text>
-  <text class="lbl" x="474" y="180">S%</text><text class="val" x="474" y="195">7.0</text>
+  <text class="lbl" x="24"  y="180">+/-</text><text class="val" x="24"  y="195">-6</text>
+  <text class="lbl" x="174" y="180">PIM</text><text class="val" x="174" y="195">2</text>
+  <text class="lbl" x="324" y="180">SOG</text><text class="val" x="324" y="195">17</text>
+  <text class="lbl" x="474" y="180">S%</text><text class="val" x="474" y="195">5.9</text>
 </g>
 <g class="card c3">
-  <text class="lbl" x="24"  y="180">HITS</text><text class="val" x="24"  y="195">129</text>
-  <text class="lbl" x="174" y="180">BLK</text><text class="val" x="174" y="195">86</text>
-  <text class="lbl" x="324" y="180">TK</text><text class="val" x="324" y="195">81</text>
-  <text class="lbl" x="474" y="180">TK-GV</text><text class="val" x="474" y="195">+59</text>
+  <text class="lbl" x="24"  y="180">HITS</text><text class="val" x="24"  y="195">16</text>
+  <text class="lbl" x="174" y="180">BLK</text><text class="val" x="174" y="195">9</text>
+  <text class="lbl" x="324" y="180">TK</text><text class="val" x="324" y="195">10</text>
+  <text class="lbl" x="474" y="180">TK-GV</text><text class="val" x="474" y="195">+8</text>
 </g>
 <g class="card c4">
-  <text class="lbl" x="24"  y="180">CF%</text><text class="val" x="24"  y="195">55.3</text>
-  <text class="lbl" x="174" y="180">FF%</text><text class="val" x="174" y="195">55.9</text>
-  <text class="lbl" x="324" y="180">PDO</text><text class="val" x="324" y="195">99.5</text>
-  <text class="lbl" x="474" y="180">ATOI</text><text class="val" x="474" y="195">24:16</text>
+  <text class="lbl" x="24"  y="180">CF%</text><text class="val" x="24"  y="195">44.4</text>
+  <text class="lbl" x="174" y="180">FF%</text><text class="val" x="174" y="195">40.8</text>
+  <text class="lbl" x="324" y="180">PDO</text><text class="val" x="324" y="195">93.1</text>
+  <text class="lbl" x="474" y="180">ATOI</text><text class="val" x="474" y="195">22:27</text>
 </g>
 <g class="card c5">
-  <text class="lbl" x="24"  y="180">GF/60</text><text class="val" x="24"  y="195">4.9</text>
-  <text class="lbl" x="174" y="180">GA/60</text><text class="val" x="174" y="195">3.9</text>
-  <text class="lbl" x="324" y="180">SF/60</text><text class="val" x="324" y="195">38.3</text>
-  <text class="lbl" x="474" y="180">SA/60</text><text class="val" x="474" y="195">29.8</text>
+  <text class="lbl" x="24"  y="180">GF/60</text><text class="val" x="24"  y="195">2.5</text>
+  <text class="lbl" x="174" y="180">GA/60</text><text class="val" x="174" y="195">5.7</text>
+  <text class="lbl" x="324" y="180">SF/60</text><text class="val" x="324" y="195">22.1</text>
+  <text class="lbl" x="474" y="180">SA/60</text><text class="val" x="474" y="195">30.9</text>
 </g>
 <g class="card c6">
-  <text class="lbl" x="24"  y="180">PPP</text><text class="val" x="24"  y="195">19</text>
-  <text class="lbl" x="174" y="180">SHP</text><text class="val" x="174" y="195">3</text>
-  <text class="lbl" x="324" y="180">PP ATOI</text><text class="val" x="324" y="195">2:21</text>
-  <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">2:19</text>
-</g>
-<g class="card c7">
-  <text class="lbl" x="24"  y="180">PO GP</text><text class="val" x="24"  y="195">10</text>
-  <text class="lbl" x="174" y="180">PO G</text><text class="val" x="174" y="195">3</text>
-  <text class="lbl" x="324" y="180">PO A</text><text class="val" x="324" y="195">5</text>
-  <text class="lbl" x="474" y="180">PO PTS</text><text class="val" x="474" y="195">8</text>
-</g>
-<g class="card c8">
-  <text class="lbl" x="24"  y="180">PO +/-</text><text class="val" x="24"  y="195">+2</text>
-  <text class="lbl" x="174" y="180">PO PIM</text><text class="val" x="174" y="195">6</text>
-  <text class="lbl" x="324" y="180">PO SOG</text><text class="val" x="324" y="195">23</text>
-  <text class="lbl" x="474" y="180">PO S%</text><text class="val" x="474" y="195">13.0</text>
-</g>
-<g class="card c9">
-  <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">30</text>
-  <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">17</text>
-  <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">12</text>
-  <text class="lbl" x="474" y="180">PO TK-GV</text><text class="val" x="474" y="195">+8</text>
-</g>
-<g class="card c10">
-  <text class="lbl" x="24"  y="180">PO PPP</text><text class="val" x="24"  y="195">2</text>
-  <text class="lbl" x="174" y="180">PO SHP</text><text class="val" x="174" y="195">0</text>
-  <text class="lbl" x="324" y="180">PO PP ATOI</text><text class="val" x="324" y="195">2:22</text>
-  <text class="lbl" x="474" y="180">PO SH ATOI</text><text class="val" x="474" y="195">1:21</text>
+  <text class="lbl" x="24"  y="180">PPP</text><text class="val" x="24"  y="195">2</text>
+  <text class="lbl" x="174" y="180">SHP</text><text class="val" x="174" y="195">0</text>
+  <text class="lbl" x="324" y="180">PP ATOI</text><text class="val" x="324" y="195">3:27</text>
+  <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">3:10</text>
 </g>
 </svg>

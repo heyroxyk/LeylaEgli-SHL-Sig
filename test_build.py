@@ -224,18 +224,25 @@ class CycleTimingTests(unittest.TestCase):
             build.cycle_timings(0)
 
 
+# Her S89 SMJHL run. Fixed here because data.json only carries a playoff block
+# from game one of a run until the next season starts.
+PLAYOFF_RUN = {
+    "gamesPlayed": 10, "goals": 3, "assists": 5, "points": 8, "plusMinus": 2, "pim": 6,
+    "hits": 30, "shotsBlocked": 17, "takeaways": 12, "giveaways": 4, "shotsOnGoal": 23,
+    "timeOnIce": 14905, "ppPoints": 2, "shPoints": 0, "ppTimeOnIce": 1418, "shTimeOnIce": 811,
+}
+
+
 class PlayoffCardTests(unittest.TestCase):
     def setUp(self):
         self.template = load_template()
-        self.data = load_data()
+        committed = load_data()
+        self.data = {**committed, "stats": {**committed["stats"], "playoffs": PLAYOFF_RUN}}
         self.mark = load_mark()
 
     def without_playoffs(self):
         stats = {k: v for k, v in self.data["stats"].items() if k != "playoffs"}
         return {**self.data, "stats": stats}
-
-    def test_data_currently_has_a_playoff_run(self):
-        self.assertIn("playoffs", self.data["stats"])
 
     def test_playoff_run_adds_four_cards(self):
         svg = build.build(self.template, self.data, self.mark)
@@ -541,7 +548,28 @@ class FetchShapeTests(unittest.TestCase):
         player["indexRecords"] = [
             {"leagueID": 1, "indexID": 3192}, {"leagueID": 2, "indexID": 1579},
         ]
-        self.assertEqual(fetch.find_stats_source(player), ("SMJHL", 1, 3192))
+        with mock.patch.object(fetch, "get_json", return_value=[{"PlayerID": 1, "Name": "Someone"}]):
+            self.assertEqual(fetch.find_stats_source(player), ("SMJHL", 1, 3192))
+
+    def test_finds_the_new_league_in_the_index_before_the_portal_links_it(self):
+        """S90: the index had her as SHL 5886 while the portal still listed only SMJHL."""
+        player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
+        roster = [{"PlayerID": 3245, "Name": "Emil Egli"}, {"PlayerID": 5886, "Name": "Leyla Egli"}]
+        with mock.patch.object(fetch, "get_json", return_value=roster) as called:
+            self.assertEqual(fetch.find_stats_source(player), ("SHL", 0, 5886))
+        self.assertIn("playerSearch?league=0", called.call_args.args[0])
+
+    def test_an_ambiguous_name_is_not_trusted(self):
+        player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
+        roster = [{"PlayerID": 5886, "Name": "Leyla Egli"}, {"PlayerID": 9999, "Name": "Leyla Egli"}]
+        with mock.patch.object(fetch, "get_json", return_value=roster):
+            self.assertEqual(fetch.find_stats_source(player), ("SMJHL", 1, 3192))
+
+    def test_a_linked_record_skips_the_search(self):
+        player = self.player_payload()[0]
+        with mock.patch.object(fetch, "get_json") as called:
+            fetch.find_stats_source(player)
+        called.assert_not_called()
 
     def test_the_new_league_wins_the_moment_it_has_a_record(self):
         player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
@@ -553,7 +581,7 @@ class FetchShapeTests(unittest.TestCase):
     def test_a_national_side_never_stands_in_for_a_club_season(self):
         player = self.player_payload(currentLeague="SHL", currentTeamID=6)[0]
         player["indexRecords"] = [{"leagueID": 2, "indexID": 1579}]
-        with self.assertRaises(fetch.ShapeError) as caught:
+        with mock.patch.object(fetch, "get_json", return_value=[]), self.assertRaises(fetch.ShapeError) as caught:
             fetch.find_stats_source(player)
         self.assertIn("club league", str(caught.exception))
 
