@@ -46,8 +46,8 @@
   .tpeTotal{ animation: fillTotal 1.2s cubic-bezier(.2,.8,.2,1) .5s both; }
   .tpeApp{ animation: fillApp 1.2s cubic-bezier(.2,.8,.2,1) .75s both; }
   .tpeHead{ animation: headIn .5s ease-out 1.5s both; }
-  @keyframes fillTotal{ from{width:0} to{width:304.4px} }
-  @keyframes fillApp{ from{width:0} to{width:296.4px} }
+  @keyframes fillTotal{ from{width:0} to{width:307.5px} }
+  @keyframes fillApp{ from{width:0} to{width:304.1px} }
   @keyframes headIn{ from{opacity:0} to{opacity:1} }
 
   /* The placement transform lives on the INNER group on purpose. A CSS
@@ -77,8 +77,8 @@
     .shape{animation:none; transform:none; opacity:1}
     .mark{animation:none; opacity:1}
     .tpeHead{animation:none; opacity:1}
-    .tpeTotal{animation:none; width:304.4px}
-    .tpeApp{animation:none; width:296.4px}
+    .tpeTotal{animation:none; width:307.5px}
+    .tpeApp{animation:none; width:304.1px}
   }
 </style>
 
@@ -106,13 +106,13 @@
   <line stroke="var(--grid)" x1="338" y1="78" x2="291.2" y2="51.0"/>
 
   <g class="shape">
-    <polygon points="338.0,32.1 375.4,56.4 374.2,98.9 338.0,107.7 306.4,96.2 302.9,57.8"
+    <polygon points="338.0,32.1 375.4,56.4 374.2,98.9 338.0,108.4 306.4,96.2 302.9,57.8"
              fill="var(--accent)" fill-opacity="0.22" stroke="var(--accent)"
              stroke-width="1.6" stroke-linejoin="round"/>
     <circle cx="338.0" cy="32.1" r="2.2" fill="var(--accent)"/>
     <circle cx="375.4" cy="56.4" r="2.2" fill="var(--accent)"/>
     <circle cx="374.2" cy="98.9" r="2.2" fill="var(--accent)"/>
-    <circle cx="338.0" cy="107.7" r="2.2" fill="var(--accent)"/>
+    <circle cx="338.0" cy="108.4" r="2.2" fill="var(--accent)"/>
     <circle cx="306.4" cy="96.2" r="2.2" fill="var(--accent)"/>
     <circle cx="302.9" cy="57.8" r="2.2" fill="var(--accent)"/>
   </g>
@@ -141,14 +141,14 @@
      drawn before the labels on purpose: as the head travels right a label will
      eventually reach one, and passing behind the text beats striking through it. -->
 <rect fill="var(--rule)" x="0" y="152" width="620" height="16"/>
-<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="304.4" height="16"/>
-<rect class="tpeApp" fill="var(--accent)" x="0" y="152" width="296.4" height="16"/>
+<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="307.5" height="16"/>
+<rect class="tpeApp" fill="var(--accent)" x="0" y="152" width="304.1" height="16"/>
 <line stroke="var(--bg)" x1="155" y1="152" x2="155" y2="168"/>
 <line stroke="var(--bg)" x1="310" y1="152" x2="310" y2="168"/>
 <line stroke="var(--bg)" x1="465" y1="152" x2="465" y2="168"/>
-<line class="tpeHead" stroke="var(--accent)" x1="304.4" y1="150" x2="304.4" y2="170"/>
-<text class="tpeLbl tpeOn tpeHead"  x="290.4" y="163" text-anchor="end">956</text>
-<text class="tpeLbl tpeInk tpeHead" x="310.4" y="163">982 TPE</text>
+<line class="tpeHead" stroke="var(--accent)" x1="307.5" y1="150" x2="307.5" y2="170"/>
+<text class="tpeLbl tpeOn tpeHead"  x="298.1" y="163" text-anchor="end">981</text>
+<text class="tpeLbl tpeInk tpeHead" x="313.5" y="163">992 TPE</text>
 <text class="tpeLbl tpeInk tpeHead" x="613" y="163" text-anchor="end" fill-opacity="0.45">2000</text>
 
 <!-- ticker rail. The season is ghosted in behind the cards rather than printed
@@ -166,39 +166,39 @@
 <text class="ghost" clip-path="url(#rail)" x="620.9" y="200" text-anchor="end">S90</text>
 
 <g class="card c1">
-  <text class="lbl" x="24"  y="180">GP</text><text class="val" x="24"  y="195">60</text>
-  <text class="lbl" x="174" y="180">G</text><text class="val" x="174" y="195">11</text>
-  <text class="lbl" x="324" y="180">A</text><text class="val" x="324" y="195">22</text>
-  <text class="lbl" x="474" y="180">PTS</text><text class="val" x="474" y="195">33</text>
+  <text class="lbl" x="24"  y="180">GP</text><text class="val" x="24"  y="195">66</text>
+  <text class="lbl" x="174" y="180">G</text><text class="val" x="174" y="195">12</text>
+  <text class="lbl" x="324" y="180">A</text><text class="val" x="324" y="195">25</text>
+  <text class="lbl" x="474" y="180">PTS</text><text class="val" x="474" y="195">37</text>
 </g>
 <g class="card c2">
-  <text class="lbl" x="24"  y="180">+/-</text><text class="val" x="24"  y="195">-29</text>
-  <text class="lbl" x="174" y="180">PIM</text><text class="val" x="174" y="195">44</text>
-  <text class="lbl" x="324" y="180">SOG</text><text class="val" x="324" y="195">127</text>
-  <text class="lbl" x="474" y="180">S%</text><text class="val" x="474" y="195">8.7</text>
+  <text class="lbl" x="24"  y="180">+/-</text><text class="val" x="24"  y="195">-30</text>
+  <text class="lbl" x="174" y="180">PIM</text><text class="val" x="174" y="195">46</text>
+  <text class="lbl" x="324" y="180">SOG</text><text class="val" x="324" y="195">134</text>
+  <text class="lbl" x="474" y="180">S%</text><text class="val" x="474" y="195">9.0</text>
 </g>
 <g class="card c3">
-  <text class="lbl" x="24"  y="180">HITS</text><text class="val" x="24"  y="195">90</text>
-  <text class="lbl" x="174" y="180">BLK</text><text class="val" x="174" y="195">83</text>
-  <text class="lbl" x="324" y="180">TK</text><text class="val" x="324" y="195">54</text>
+  <text class="lbl" x="24"  y="180">HITS</text><text class="val" x="24"  y="195">97</text>
+  <text class="lbl" x="174" y="180">BLK</text><text class="val" x="174" y="195">90</text>
+  <text class="lbl" x="324" y="180">TK</text><text class="val" x="324" y="195">56</text>
   <text class="lbl" x="474" y="180">TK-GV</text><text class="val" x="474" y="195">+31</text>
 </g>
 <g class="card c4">
   <text class="lbl" x="24"  y="180">CF%</text><text class="val" x="24"  y="195">38.5</text>
   <text class="lbl" x="174" y="180">FF%</text><text class="val" x="174" y="195">36.8</text>
-  <text class="lbl" x="324" y="180">PDO</text><text class="val" x="324" y="195">101.5</text>
-  <text class="lbl" x="474" y="180">ATOI</text><text class="val" x="474" y="195">22:41</text>
+  <text class="lbl" x="324" y="180">PDO</text><text class="val" x="324" y="195">101.7</text>
+  <text class="lbl" x="474" y="180">ATOI</text><text class="val" x="474" y="195">22:25</text>
 </g>
 <g class="card c5">
-  <text class="lbl" x="24"  y="180">GF/60</text><text class="val" x="24"  y="195">3.3</text>
-  <text class="lbl" x="174" y="180">GA/60</text><text class="val" x="174" y="195">4.9</text>
+  <text class="lbl" x="24"  y="180">GF/60</text><text class="val" x="24"  y="195">3.2</text>
+  <text class="lbl" x="174" y="180">GA/60</text><text class="val" x="174" y="195">4.8</text>
   <text class="lbl" x="324" y="180">SF/60</text><text class="val" x="324" y="195">21.9</text>
-  <text class="lbl" x="474" y="180">SA/60</text><text class="val" x="474" y="195">36.9</text>
+  <text class="lbl" x="474" y="180">SA/60</text><text class="val" x="474" y="195">36.7</text>
 </g>
 <g class="card c6">
-  <text class="lbl" x="24"  y="180">PPP</text><text class="val" x="24"  y="195">17</text>
+  <text class="lbl" x="24"  y="180">PPP</text><text class="val" x="24"  y="195">18</text>
   <text class="lbl" x="174" y="180">SHP</text><text class="val" x="174" y="195">1</text>
-  <text class="lbl" x="324" y="180">PP ATOI</text><text class="val" x="324" y="195">3:47</text>
-  <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">2:38</text>
+  <text class="lbl" x="324" y="180">PP ATOI</text><text class="val" x="324" y="195">3:32</text>
+  <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">2:32</text>
 </g>
 </svg>
