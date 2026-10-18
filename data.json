@@ -31,7 +31,7 @@
   },
   "player": {
     "appliedTPE": 981,
-    "bankedTPE": 11,
+    "bankedTPE": 16,
     "birthplace": "Zug, Switzerland",
     "currentLeague": "SHL",
     "currentTeamID": 6,
@@ -41,7 +41,7 @@
     "jerseyNumber": 76,
     "name": "Leyla Egli",
     "position": "Right Defense",
-    "totalTPE": 992,
+    "totalTPE": 997,
     "weight": 178
   },
   "stats": {
