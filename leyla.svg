@@ -46,7 +46,7 @@
   .tpeTotal{ animation: fillTotal 1.2s cubic-bezier(.2,.8,.2,1) .5s both; }
   .tpeApp{ animation: fillApp 1.2s cubic-bezier(.2,.8,.2,1) .75s both; }
   .tpeHead{ animation: headIn .5s ease-out 1.5s both; }
-  @keyframes fillTotal{ from{width:0} to{width:309.1px} }
+  @keyframes fillTotal{ from{width:0} to{width:311.2px} }
   @keyframes fillApp{ from{width:0} to{width:304.1px} }
   @keyframes headIn{ from{opacity:0} to{opacity:1} }
 
@@ -63,13 +63,13 @@
      than speeding up. build.py writes every timing below from the live card
      count: the percentages are one card's turn expressed against the whole
      loop, so they cannot be hardcoded without breaking the day a card appears. */
-  .card{ opacity:0; animation: cycle 21s ease-in-out infinite; }
-  .c2{animation-delay:-17.5s} .c3{animation-delay:-14s} .c4{animation-delay:-10.5s} .c5{animation-delay:-7s} .c6{animation-delay:-3.5s}
+  .card{ opacity:0; animation: cycle 35s ease-in-out infinite; }
+  .c2{animation-delay:-31.5s} .c3{animation-delay:-28s} .c4{animation-delay:-24.5s} .c5{animation-delay:-21s} .c6{animation-delay:-17.5s} .c7{animation-delay:-14s} .c8{animation-delay:-10.5s} .c9{animation-delay:-7s} .c10{animation-delay:-3.5s}
   @keyframes cycle{
     0%   {opacity:0; transform:translateY(6px)}
-    2.5% {opacity:1; transform:translateY(0)}
-    14.167%{opacity:1; transform:translateY(0)}
-    16.667%{opacity:0; transform:translateY(-6px)}
+    1.5% {opacity:1; transform:translateY(0)}
+    8.5%{opacity:1; transform:translateY(0)}
+    10%{opacity:0; transform:translateY(-6px)}
     100% {opacity:0; transform:translateY(-6px)}
   }
   @media (prefers-reduced-motion: reduce){
@@ -77,7 +77,7 @@
     .shape{animation:none; transform:none; opacity:1}
     .mark{animation:none; opacity:1}
     .tpeHead{animation:none; opacity:1}
-    .tpeTotal{animation:none; width:309.1px}
+    .tpeTotal{animation:none; width:311.2px}
     .tpeApp{animation:none; width:304.1px}
   }
 </style>
@@ -141,14 +141,14 @@
      drawn before the labels on purpose: as the head travels right a label will
      eventually reach one, and passing behind the text beats striking through it. -->
 <rect fill="var(--rule)" x="0" y="152" width="620" height="16"/>
-<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="309.1" height="16"/>
+<rect class="tpeTotal" fill="var(--accent2)" fill-opacity="0.85" x="0" y="152" width="311.2" height="16"/>
 <rect class="tpeApp" fill="var(--accent)" x="0" y="152" width="304.1" height="16"/>
 <line stroke="var(--bg)" x1="155" y1="152" x2="155" y2="168"/>
 <line stroke="var(--bg)" x1="310" y1="152" x2="310" y2="168"/>
 <line stroke="var(--bg)" x1="465" y1="152" x2="465" y2="168"/>
-<line class="tpeHead" stroke="var(--accent)" x1="309.1" y1="150" x2="309.1" y2="170"/>
+<line class="tpeHead" stroke="var(--accent)" x1="311.2" y1="150" x2="311.2" y2="170"/>
 <text class="tpeLbl tpeOn tpeHead"  x="298.1" y="163" text-anchor="end">981</text>
-<text class="tpeLbl tpeInk tpeHead" x="315.1" y="163">997 TPE</text>
+<text class="tpeLbl tpeInk tpeHead" x="317.2" y="163">1004 TPE</text>
 <text class="tpeLbl tpeInk tpeHead" x="613" y="163" text-anchor="end" fill-opacity="0.45">2000</text>
 
 <!-- ticker rail. The season is ghosted in behind the cards rather than printed
@@ -200,5 +200,29 @@
   <text class="lbl" x="174" y="180">SHP</text><text class="val" x="174" y="195">1</text>
   <text class="lbl" x="324" y="180">PP ATOI</text><text class="val" x="324" y="195">3:32</text>
   <text class="lbl" x="474" y="180">SH ATOI</text><text class="val" x="474" y="195">2:32</text>
+</g>
+<g class="card c7">
+  <text class="lbl" x="24"  y="180">PO GP</text><text class="val" x="24"  y="195">2</text>
+  <text class="lbl" x="174" y="180">PO G</text><text class="val" x="174" y="195">0</text>
+  <text class="lbl" x="324" y="180">PO A</text><text class="val" x="324" y="195">2</text>
+  <text class="lbl" x="474" y="180">PO PTS</text><text class="val" x="474" y="195">2</text>
+</g>
+<g class="card c8">
+  <text class="lbl" x="24"  y="180">PO +/-</text><text class="val" x="24"  y="195">-2</text>
+  <text class="lbl" x="174" y="180">PO PIM</text><text class="val" x="174" y="195">0</text>
+  <text class="lbl" x="324" y="180">PO SOG</text><text class="val" x="324" y="195">0</text>
+  <text class="lbl" x="474" y="180">PO S%</text><text class="val" x="474" y="195">0.0</text>
+</g>
+<g class="card c9">
+  <text class="lbl" x="24"  y="180">PO HITS</text><text class="val" x="24"  y="195">5</text>
+  <text class="lbl" x="174" y="180">PO BLK</text><text class="val" x="174" y="195">2</text>
+  <text class="lbl" x="324" y="180">PO TK</text><text class="val" x="324" y="195">2</text>
+  <text class="lbl" x="474" y="180">PO TK-GV</text><text class="val" x="474" y="195">+0</text>
+</g>
+<g class="card c10">
+  <text class="lbl" x="24"  y="180">PO PPP</text><text class="val" x="24"  y="195">0</text>
+  <text class="lbl" x="174" y="180">PO SHP</text><text class="val" x="174" y="195">0</text>
+  <text class="lbl" x="324" y="180">PO PP ATOI</text><text class="val" x="324" y="195">1:24</text>
+  <text class="lbl" x="474" y="180">PO SH ATOI</text><text class="val" x="474" y="195">0:20</text>
 </g>
 </svg>
