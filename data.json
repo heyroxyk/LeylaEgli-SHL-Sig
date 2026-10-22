@@ -48,21 +48,21 @@
     "league": "SHL",
     "playoffs": {
       "assists": 2,
-      "gamesPlayed": 4,
-      "giveaways": 3,
+      "gamesPlayed": 5,
+      "giveaways": 4,
       "goals": 0,
-      "hits": 9,
+      "hits": 12,
       "pim": 0,
-      "plusMinus": -3,
+      "plusMinus": -4,
       "points": 2,
       "ppPoints": 0,
-      "ppTimeOnIce": 167,
+      "ppTimeOnIce": 239,
       "shPoints": 0,
-      "shTimeOnIce": 144,
-      "shotsBlocked": 4,
+      "shTimeOnIce": 166,
+      "shotsBlocked": 6,
       "shotsOnGoal": 3,
-      "takeaways": 3,
-      "timeOnIce": 4742
+      "takeaways": 4,
+      "timeOnIce": 5797
     },
     "regular": {
       "advanced": {
