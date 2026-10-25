@@ -24,14 +24,14 @@
     "shotBlocking": 12,
     "speed": 17,
     "stamina": 16,
-    "stickchecking": 15,
+    "stickchecking": 16,
     "strength": 16,
     "teamPlayer": 15,
     "temperament": 15
   },
   "player": {
-    "appliedTPE": 981,
-    "bankedTPE": 29,
+    "appliedTPE": 1006,
+    "bankedTPE": 4,
     "birthplace": "Zug, Switzerland",
     "currentLeague": "SHL",
     "currentTeamID": 6,
