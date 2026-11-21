@@ -17,7 +17,7 @@
     "passing": 17,
     "positioning": 16,
     "professionalism": 15,
-    "puckhandling": 15,
+    "puckhandling": 16,
     "screening": 5,
     "shootingAccuracy": 13,
     "shootingRange": 15,
@@ -30,8 +30,8 @@
     "temperament": 15
   },
   "player": {
-    "appliedTPE": 1066,
-    "bankedTPE": 50,
+    "appliedTPE": 1091,
+    "bankedTPE": 25,
     "birthplace": "Zug, Switzerland",
     "currentLeague": "SHL",
     "currentTeamID": 6,
